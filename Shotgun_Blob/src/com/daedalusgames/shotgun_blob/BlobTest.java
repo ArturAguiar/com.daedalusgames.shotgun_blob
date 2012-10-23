@@ -30,7 +30,7 @@ public class BlobTest extends TestCase
     public void setUp()
     {
         beforeBodyCount = Main.getWorld().getBodyCount();
-        blob = new Blob();
+        //blob = new Blob();
     }
 
     /**

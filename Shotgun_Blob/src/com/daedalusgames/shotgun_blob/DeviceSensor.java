@@ -59,8 +59,24 @@ public class DeviceSensor implements SensorEventListener
      */
     public void onSensorChanged(SensorEvent event)
     {
-        Main.setGravity( new Vec2(-1.0f*event.values[0], event.values[1]) );
-        //float values[] = event.values;
+        //float y = event.values[1];
+
+        /*
+        if (y > 4.0f)
+        {
+            y = 4.0f;
+        }
+        else if (y < -4.0f)
+        {
+            y = -4.0f;
+        }
+
+        if (Main.getBlob() != null && Main.getBlob().getBody() != null)
+        {
+            Main.getBlob().getBody().setLinearVelocity(new Vec2(y, 0.0f));
+        }*/
+
+        Main.setGravity( new Vec2(event.values[0], event.values[1]) );
     }
 
 }

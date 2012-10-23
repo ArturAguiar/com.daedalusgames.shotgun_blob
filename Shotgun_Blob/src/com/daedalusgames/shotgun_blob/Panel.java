@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.content.res.Resources;
 import android.view.MotionEvent;
 import android.graphics.Color;
 import android.graphics.Canvas;
@@ -21,7 +22,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 
     private Box2DThread box2dThread;
 
+    /** The level. - This is temporary. Just for testing at the moment. */
+    @SuppressWarnings("unused")
+    private Level lvl;
+
     //private Bitmap myBitmap;
+
+    private Resources resources;
 
     private int tapX;
     private int tapY;
@@ -33,6 +40,9 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
     public Panel(Context context)
     {
         super(context);
+        setKeepScreenOn(true);
+
+        resources = getResources();
 
         //myBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher); // icon
 
@@ -43,6 +53,10 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 
         //Create the box2D dedicated thread.
         box2dThread = new Box2DThread();
+
+        Main.setBlob(new Blob(resources));
+
+        lvl = new Level();
     }
 
     /**
@@ -61,13 +75,12 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         {
             if (actor != null)
             {
-                //actor.drawMe(canvas);
+                actor.drawMe(canvas);
             }
         }
 
-        //Debug-draw the shapes in the world
-        DebugDraw.debugDrawShapes(Main.getWorld(), canvas);
-
+        //Debug-draw the box3d world
+        //DebugDraw.draw(Main.getWorld(), canvas);
 
         /*
         canvas.drawBitmap(myBitmap, tapX - myBitmap.getWidth() / 2, tapY - myBitmap.getHeight() / 2, null);
@@ -131,8 +144,10 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         tapX = (int) event.getX();
         tapY = (int) event.getY();
 
-        @SuppressWarnings("unused")
-        Blob aBlob = new Blob(tapX, tapY);
+        if ( !Main.getWorld().isLocked() )
+        {
+            new RandomObject(tapX, tapY, resources);
+        }
 
         return super.onTouchEvent(event);
     }

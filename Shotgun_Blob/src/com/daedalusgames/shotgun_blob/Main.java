@@ -23,28 +23,17 @@ public class Main extends Activity
 
     //////////
     //BOX2D
-    /** The Box2D gravity vector. */
-    private static Vec2 gravity = new Vec2(0.0f, 10.0f);
-
     /** The Box2D physics world. */
-    private static World world = new World(gravity, false);
+    private static World world = new World(new Vec2(0.0f, 10.0f), true);
 
     /** The Box2d meters to pixels ratio. */
     public static final float RATIO = 30.0f; // 1 meter = 30 pixels
-
-    @SuppressWarnings("unused")
-    private Level lvl;
 
 
     //////////
     //ANDROID GRAPHICS
     /** The display metrics object to get screen characteristics. */
     public static DisplayMetrics displayMetrics = new DisplayMetrics();
-
-    /** The value for a dp of the device (density-independent pixel).
-     *  Multiply this by the amount of pixels to keep a constant aspect across
-     *  multiple screens. */
-    public static float screenDensity;
 
 
     //////////
@@ -55,11 +44,18 @@ public class Main extends Activity
     /** The gravity sensor. */
     private static DeviceSensor gravitySensor;
 
+    /** The gravity vector set by the sensor. */
+    private static Vec2 gravity = new Vec2(0.0f, 0.0f);
+
 
     /////////
     //GAME
     /** The set containing references to all actors. */
     private static HashSet<Actor> actors = new HashSet<Actor>();
+
+    /** The main character. */
+    private static Blob blob;
+
 
 
     //Methods-----------------------------------------------------------------
@@ -68,22 +64,16 @@ public class Main extends Activity
      * It functions as a constructor.
      */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState)
+    {
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+
         super.onCreate(savedInstanceState);
         setContentView(new Panel(this));
-
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         gravitySensor = new DeviceSensor(Sensor.TYPE_GRAVITY);
-
-        //screenDensity = displayMetrics.density;
-
-        @SuppressWarnings("unused")
-        Blob blob = new Blob();
-
-        lvl = new Level();
     }
 
     /**
@@ -113,6 +103,24 @@ public class Main extends Activity
     public static World getWorld()
     {
         return world;
+    }
+
+    /**
+     * The main character getter.
+     * @return blob The main character.
+     */
+    public static Blob getBlob()
+    {
+        return blob;
+    }
+
+    /**
+     * The main character setter.
+     * @param newBlob The new blob instance.
+     */
+    public static void setBlob(Blob newBlob)
+    {
+        blob = newBlob;
     }
 
     /**

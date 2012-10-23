@@ -29,6 +29,12 @@ abstract public class Actor
     abstract public void drawMe(Canvas canvas);
 
     /**
+     * Method where all character specific logic is located.
+     * This is run after every box2d step.     *
+     */
+    abstract public void charLogic();
+
+    /**
      * Sets the body of the actor.
      * Should only be called by inheriting classes.
      * @param newBody The new box2d body to be set.
@@ -69,6 +75,7 @@ abstract public class Actor
     /**
      * Returns the dp (density-independent pixel) equivalent to amount of
      * pixels given as parameter.
+     * TODO: I don't think this is working.
      * @param px The amount of pixels to convert.
      * @return The equivalent amount of dp's.
      */

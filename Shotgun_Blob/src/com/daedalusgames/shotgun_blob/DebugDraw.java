@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import org.jbox2d.dynamics.joints.Joint;
 import android.graphics.Path;
 import org.jbox2d.collision.shapes.PolygonShape;
 import android.graphics.Canvas;
@@ -26,19 +27,20 @@ import org.jbox2d.dynamics.World;
  */
 public class DebugDraw
 {
+    /** Flag to tell the debug drawer to also draw joints. True by default. */
+    public static boolean DRAW_JOINTS = true;
+
     /**
      * Method that draws all shapes in the given world in debug mode.
      * @param world The JBox2D world to be drawn.
      * @param canvas The screen canvas to draw to.
      */
-    public static void debugDrawShapes(World world, Canvas canvas)
+    public static void draw(World world, Canvas canvas)
     {
         Paint paint = new Paint();
         paint.setDither(true);
         paint.setAntiAlias(true);
         paint.setStrokeWidth(2.0f);
-
-
 
 
         //Iterate through the list of bodies in the world to draw them.
@@ -55,6 +57,7 @@ public class DebugDraw
             //This will prevent any conversion errors.
             Vec2 axis = new Vec2( FloatMath.cos(bodyRotation), FloatMath.sin(bodyRotation) );
 
+
             //Now iterate through every fixture inside the body and draw it according to its shape.
             for (Fixture fixture = body.getFixtureList(); fixture != null; fixture = fixture.getNext())
             {
@@ -69,7 +72,14 @@ public class DebugDraw
                 else if (body.getType() == BodyType.DYNAMIC)
                 {
                     //semi-transparent gray.
-                    paint.setARGB(200, 200, 200, 200);
+                    if (body.isAwake())
+                    {
+                        paint.setARGB(200, 200, 200, 200);
+                    }
+                    else
+                    {
+                        paint.setARGB(200, 160, 160, 160);
+                    }
                 }
                 else if (body.getType() == BodyType.STATIC)
                 {
@@ -145,9 +155,7 @@ public class DebugDraw
                     }
 
                     //Go back to the first coordinate to close the loop.
-                    tempVertex = Transform.mul(xForm, polygon.m_vertices[0]);
-                    polygonPath.lineTo(tempVertex.x * Main.RATIO,
-                                       tempVertex.y * Main.RATIO);
+                    polygonPath.close();
 
                     //Draw the polygon fill.
                     canvas.drawPath(polygonPath, paint);
@@ -157,6 +165,37 @@ public class DebugDraw
                     paint.setColor(Color.BLACK);
                     canvas.drawPath(polygonPath, paint);
                 }
+            }
+        }
+
+
+        //Draw all the joints
+        if (DRAW_JOINTS)
+        {
+            for (Joint joint = world.getJointList(); joint != null; joint = joint.getNext())
+            {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setARGB(200, 255, 217, 102);
+
+                Vec2 anchorA = new Vec2();
+                joint.getAnchorA(anchorA);
+
+                Vec2 anchorB = new Vec2();
+                joint.getAnchorB(anchorB);
+
+                Path jointPath = new Path();
+
+                jointPath.moveTo(anchorA.x * Main.RATIO,
+                                 anchorA.y * Main.RATIO);
+
+                jointPath.lineTo(anchorB.x * Main.RATIO,
+                                 anchorB.y * Main.RATIO);
+
+                //Draw the joint as a line.
+                canvas.drawPath(jointPath, paint);
+
+                // TODO: Would it be necessary to differentiate the types of joints?
+                // This was only tested with distance joints so far.
             }
         }
     }

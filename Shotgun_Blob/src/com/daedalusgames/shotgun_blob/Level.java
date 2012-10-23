@@ -34,7 +34,7 @@ public class Level
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox( (Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, (10.0f / 2.0f) / Main.RATIO );
-        //shape.setAsEdge(new Vec2(-40.0f, 0.0f), new Vec2(1000.0f, 0.0f));
+        //shape.setAsEdge(new Vec2(-(Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, 0.0f), new Vec2((Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, 0.0f));
         ground.createFixture(shape, 0.0f);
 
 

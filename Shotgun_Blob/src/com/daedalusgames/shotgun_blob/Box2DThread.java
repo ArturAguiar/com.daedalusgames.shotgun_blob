@@ -24,7 +24,7 @@ public class Box2DThread extends Thread
     public Box2DThread()
     {
         run = false;
-        timeStep = 1.0f / 60.0f;
+        timeStep = 1.0f / 40.0f;
         velocityIterations = 4;
         positionIterations = 2;
     }
@@ -44,18 +44,43 @@ public class Box2DThread extends Thread
     {
         while(run)
         {
+            long startTime = System.nanoTime();
+
             if (Main.getWorld() != null)
             {
-                Main.getWorld().setGravity(Main.getGravity());
+                //Main.getWorld().setGravity(Main.getGravity());
+                /*if (Main.getBlob() != null && Main.getBlob().getBody() != null)
+                {
+                    Main.getBlob().getBody().setLinearVelocity(new Vec2(Main.getGravity().y, 0.0f));
+                }*/
 
                 Main.getWorld().step(timeStep,
                                      velocityIterations,
                                      positionIterations);
+
+                //Call the character specific logic for every actor.
+                for (Actor actor : Main.getActors())
+                {
+                    actor.charLogic();
+                }
             }
 
             try
             {
-                Thread.sleep(1000/60);
+                int sleepTimeNanos = (int)(timeStep * 1000000000) - (int)(System.nanoTime() - startTime);
+
+                if (sleepTimeNanos > 0)
+                {
+                    int millis = sleepTimeNanos / 1000000;
+                    //Log.i("Box2D Thread", "slept " + millis + "ms");
+                    Thread.sleep( millis, sleepTimeNanos - millis*1000000 );
+                }
+                else
+                {
+                    Log.i("Box2D Thread", "running behind!");
+                }
+
+                //Thread.sleep(Math.round(timeStep * 1000));
                 // TODO: How reliable is this method of capping the frame rate?
             }
             catch (InterruptedException e)
