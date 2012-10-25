@@ -13,6 +13,8 @@ import android.util.Log;
  */
 public class Box2DThread extends Thread
 {
+    private GameWorld gameWorld;
+
     private boolean run;
     private float timeStep;
     private int velocityIterations;
@@ -20,9 +22,12 @@ public class Box2DThread extends Thread
 
     /**
      * Thread constructor.
+     * @param myGameWorld The reference to the game world;
      */
-    public Box2DThread()
+    public Box2DThread(GameWorld myGameWorld)
     {
+        gameWorld = myGameWorld;
+
         run = false;
         timeStep = 1.0f / 40.0f;
         velocityIterations = 4;
@@ -46,20 +51,14 @@ public class Box2DThread extends Thread
         {
             long startTime = System.nanoTime();
 
-            if (Main.getWorld() != null)
+            if (gameWorld.getWorld() != null)
             {
-                //Main.getWorld().setGravity(Main.getGravity());
-                /*if (Main.getBlob() != null && Main.getBlob().getBody() != null)
-                {
-                    Main.getBlob().getBody().setLinearVelocity(new Vec2(Main.getGravity().y, 0.0f));
-                }*/
-
-                Main.getWorld().step(timeStep,
+                gameWorld.getWorld().step(timeStep,
                                      velocityIterations,
                                      positionIterations);
 
                 //Call the character specific logic for every actor.
-                for (Actor actor : Main.getActors())
+                for (Actor actor : gameWorld.getActors())
                 {
                     actor.charLogic();
                 }
@@ -67,7 +66,8 @@ public class Box2DThread extends Thread
 
             try
             {
-                int sleepTimeNanos = (int)(timeStep * 1000000000) - (int)(System.nanoTime() - startTime);
+                long currentTime = System.nanoTime();
+                int sleepTimeNanos = (int)(timeStep * 1000000000) - (int)(currentTime - startTime);
 
                 if (sleepTimeNanos > 0)
                 {
@@ -79,9 +79,9 @@ public class Box2DThread extends Thread
                 {
                     Log.i("Box2D Thread", "running behind!");
                 }
+                long endTime = System.nanoTime();
 
-                //Thread.sleep(Math.round(timeStep * 1000));
-                // TODO: How reliable is this method of capping the frame rate?
+                gameWorld.setFps(1000000000.0f / (endTime - startTime));
             }
             catch (InterruptedException e)
             {

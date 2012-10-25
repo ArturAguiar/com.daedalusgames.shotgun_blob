@@ -1,5 +1,7 @@
 package com.daedalusgames.shotgun_blob;
 
+import java.text.DecimalFormat;
+import android.graphics.Typeface;
 import org.jbox2d.dynamics.joints.Joint;
 import android.graphics.Path;
 import org.jbox2d.collision.shapes.PolygonShape;
@@ -30,13 +32,18 @@ public class DebugDraw
     /** Flag to tell the debug drawer to also draw joints. True by default. */
     public static boolean DRAW_JOINTS = true;
 
+    /** Flag to tell the debug drawer to also draw the FPS. True by default. */
+    public static boolean SHOW_FRAMERATE = true;
+
     /**
      * Method that draws all shapes in the given world in debug mode.
-     * @param world The JBox2D world to be drawn.
+     * @param gameWorld The game world to be drawn.
      * @param canvas The screen canvas to draw to.
      */
-    public static void draw(World world, Canvas canvas)
+    public static void draw(GameWorld gameWorld, Canvas canvas)
     {
+        World world = gameWorld.getWorld();
+
         Paint paint = new Paint();
         paint.setDither(true);
         paint.setAntiAlias(true);
@@ -109,24 +116,24 @@ public class DebugDraw
                     float radius = circle.m_radius;
 
                     //Draw the circle fill.
-                    canvas.drawCircle(circleCenter.x * Main.RATIO,
-                                      circleCenter.y * Main.RATIO,
-                                      radius * Main.RATIO,
+                    canvas.drawCircle(circleCenter.x * gameWorld.ratio(),
+                                      circleCenter.y * gameWorld.ratio(),
+                                      radius * gameWorld.ratio(),
                                       paint);
 
                     //Draw the circle stroke (edge).
                     paint.setStyle(Paint.Style.STROKE);
                     paint.setColor(Color.BLACK);
-                    canvas.drawCircle(circleCenter.x * Main.RATIO,
-                                      circleCenter.y * Main.RATIO,
-                                      radius * Main.RATIO,
+                    canvas.drawCircle(circleCenter.x * gameWorld.ratio(),
+                                      circleCenter.y * gameWorld.ratio(),
+                                      radius * gameWorld.ratio(),
                                       paint);
 
                     //Draw a radius so that the rotation becomes noticeable.
-                    canvas.drawLine(circleCenter.x * Main.RATIO,
-                                    circleCenter.y * Main.RATIO,
-                                    (circleCenter.x + radius * axis.x) * Main.RATIO,
-                                    (circleCenter.y + radius * axis.y) * Main.RATIO,
+                    canvas.drawLine(circleCenter.x * gameWorld.ratio(),
+                                    circleCenter.y * gameWorld.ratio(),
+                                    (circleCenter.x + radius * axis.x) * gameWorld.ratio(),
+                                    (circleCenter.y + radius * axis.y) * gameWorld.ratio(),
                                     paint);
                 }
 
@@ -142,16 +149,16 @@ public class DebugDraw
 
                     //Create the path and move to the first vertex coordinate.
                     Path polygonPath = new Path();
-                    polygonPath.moveTo(tempVertex.x * Main.RATIO,
-                                       tempVertex.y * Main.RATIO);
+                    polygonPath.moveTo(tempVertex.x * gameWorld.ratio(),
+                                       tempVertex.y * gameWorld.ratio());
 
                     //Create lines between every vertex coordinate.
                     for (int i = 0; i < polygon.getVertexCount(); i++)
                     {
                         tempVertex = Transform.mul(xForm, polygon.m_vertices[i]);
 
-                        polygonPath.lineTo(tempVertex.x * Main.RATIO,
-                                           tempVertex.y * Main.RATIO);
+                        polygonPath.lineTo(tempVertex.x * gameWorld.ratio(),
+                                           tempVertex.y * gameWorld.ratio());
                     }
 
                     //Go back to the first coordinate to close the loop.
@@ -185,11 +192,11 @@ public class DebugDraw
 
                 Path jointPath = new Path();
 
-                jointPath.moveTo(anchorA.x * Main.RATIO,
-                                 anchorA.y * Main.RATIO);
+                jointPath.moveTo(anchorA.x * gameWorld.ratio(),
+                                 anchorA.y * gameWorld.ratio());
 
-                jointPath.lineTo(anchorB.x * Main.RATIO,
-                                 anchorB.y * Main.RATIO);
+                jointPath.lineTo(anchorB.x * gameWorld.ratio(),
+                                 anchorB.y * gameWorld.ratio());
 
                 //Draw the joint as a line.
                 canvas.drawPath(jointPath, paint);
@@ -197,6 +204,21 @@ public class DebugDraw
                 // TODO: Would it be necessary to differentiate the types of joints?
                 // This was only tested with distance joints so far.
             }
+        }
+
+
+        //Draw the framerate on the screen.
+        if (SHOW_FRAMERATE)
+        {
+            //The paint to output text.
+            Paint textPaint = new Paint();
+            textPaint.setStyle(Paint.Style.FILL);
+            textPaint.setColor(Color.RED);
+            textPaint.setTextSize(16);
+            textPaint.setAntiAlias(true);
+            textPaint.setTypeface(Typeface.MONOSPACE);
+
+            canvas.drawText(new DecimalFormat("#.#").format(gameWorld.getFps()) , 10.0f, 20.0f, textPaint);
         }
     }
 }

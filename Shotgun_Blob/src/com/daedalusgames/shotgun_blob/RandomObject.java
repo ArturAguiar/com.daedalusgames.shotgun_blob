@@ -2,7 +2,6 @@ package com.daedalusgames.shotgun_blob;
 
 import org.jbox2d.collision.shapes.ShapeType;
 import android.graphics.Matrix;
-import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -37,22 +36,25 @@ public class RandomObject extends Actor
     /**
      * Constructor that takes the position coordinates.
      * Right now this is just for testing.
+     * @param myGameWorld The game world reference.
      * @param x The horizontal coordinate.
      * @param y The vertical coordinate.
-     * @param resources The project resources object.
      */
-    public RandomObject(float x, float y, Resources resources)
+    public RandomObject(GameWorld myGameWorld, float x, float y)
     {
-        crateSprite = BitmapFactory.decodeResource(resources, R.drawable.crate);
+        //inherited from Actor.
+        gameWorld = myGameWorld;
+
+        crateSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.crate);
         crateSprite = Bitmap.createScaledBitmap(crateSprite,
-                                                (int)(2.0f * Main.RATIO),
-                                                (int)(2.0f * Main.RATIO),
+                                                (int)(2.0f * gameWorld.ratio()),
+                                                (int)(2.0f * gameWorld.ratio()),
                                                 false);
 
-        ballSprite = BitmapFactory.decodeResource(resources, R.drawable.ball);
+        ballSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.ball);
         ballSprite = Bitmap.createScaledBitmap(ballSprite,
-                                                (int)(2.0f * Main.RATIO),
-                                                (int)(2.0f * Main.RATIO),
+                                                (int)(2.0f * gameWorld.ratio()),
+                                                (int)(2.0f * gameWorld.ratio()),
                                                 false);
 
         matrix = new Matrix();
@@ -67,22 +69,22 @@ public class RandomObject extends Actor
         //BodyDef inherited from actor.
         setBodyDef( new BodyDef() );
         getBodyDef().type = BodyType.DYNAMIC;
-        getBodyDef().position = new Vec2(x / Main.RATIO, y / Main.RATIO);
-        setBody( Main.getWorld().createBody( getBodyDef() ) );
+        getBodyDef().position = new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio());
+        setBody( gameWorld.getWorld().createBody( getBodyDef() ) );
 
         if (getBody() != null)
         {
-            if (Main.getWorld().getBodyCount() % 2 == 1)
+            if (gameWorld.getWorld().getBodyCount() % 2 == 1)
             {
                 Fixture fixt = getBody().createFixture(circleShape, 1.0f);
                 fixt.m_restitution = 0.3f;
-                Main.pushActor(this);
+                gameWorld.pushActor(this);
             }
             else
             {
                 Fixture fixt = getBody().createFixture(polyShape, 1.0f);
                 fixt.m_restitution = 0.3f;
-                Main.pushActor(this);
+                gameWorld.pushActor(this);
             }
 
         }
@@ -92,11 +94,11 @@ public class RandomObject extends Actor
     public void drawMe(Canvas canvas)
     {
         matrix.reset();
-        matrix.setTranslate((getBody().getPosition().x - 1.0f) * Main.RATIO,
-                            (getBody().getPosition().y - 1.0f) * Main.RATIO);
+        matrix.setTranslate((getBody().getPosition().x - 1.0f) * gameWorld.ratio(),
+                            (getBody().getPosition().y - 1.0f) * gameWorld.ratio());
         matrix.postRotate(getBody().getAngle() * 180.0f/(3.14159265f),
-                          getBody().getPosition().x * Main.RATIO,
-                          getBody().getPosition().y * Main.RATIO);
+                          getBody().getPosition().x * gameWorld.ratio(),
+                          getBody().getPosition().y * gameWorld.ratio());
 
         if (getBody().getFixtureList().getShape().getType() == ShapeType.POLYGON)
         {
@@ -109,10 +111,10 @@ public class RandomObject extends Actor
 
         /*
         canvas.drawBitmap(crateSprite, null,
-                          new RectF((getBody().getPosition().x - 1.0f) * Main.RATIO,
-                                    (getBody().getPosition().y - 1.0f) * Main.RATIO,
-                                    (getBody().getPosition().x + 1.0f) * Main.RATIO,
-                                    (getBody().getPosition().y + 1.0f) * Main.RATIO ),
+                          new RectF((getBody().getPosition().x - 1.0f) * gameWorld.ratio(),
+                                    (getBody().getPosition().y - 1.0f) * gameWorld.ratio(),
+                                    (getBody().getPosition().x + 1.0f) * gameWorld.ratio(),
+                                    (getBody().getPosition().y + 1.0f) * gameWorld.ratio() ),
                           null);
                           */
     }

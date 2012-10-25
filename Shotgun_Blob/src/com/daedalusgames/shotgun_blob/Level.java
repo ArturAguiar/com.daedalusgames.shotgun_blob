@@ -16,6 +16,8 @@ import org.jbox2d.dynamics.BodyDef;
  */
 public class Level
 {
+    private GameWorld gameWorld;
+
     private Body ground;
     private Body leftWall;
     private Body rightWall;
@@ -23,41 +25,44 @@ public class Level
 
     /**
      * Level constructor.
+     * @param myGameWorld The game world.
      */
-    public Level()
+    public Level(GameWorld myGameWorld)
     {
+        gameWorld = myGameWorld;
+
         //Ground
         BodyDef bd = new BodyDef();
         bd.type = BodyType.STATIC;
-        bd.position = new Vec2((Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, Main.displayMetrics.heightPixels / Main.RATIO );
-        ground = Main.getWorld().createBody(bd);
+        bd.position = new Vec2((gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), gameWorld.getDisplayMetrics().heightPixels / gameWorld.ratio() );
+        ground = gameWorld.getWorld().createBody(bd);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox( (Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, (10.0f / 2.0f) / Main.RATIO );
-        //shape.setAsEdge(new Vec2(-(Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, 0.0f), new Vec2((Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, 0.0f));
+        shape.setAsBox( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), (10.0f / 2.0f) / gameWorld.ratio() );
+        //shape.setAsEdge(new Vec2(-(gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), 0.0f), new Vec2((gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), 0.0f));
         ground.createFixture(shape, 0.0f);
 
 
         //Right Wall
-        bd.position = new Vec2(Main.displayMetrics.widthPixels / Main.RATIO, (Main.displayMetrics.heightPixels / 2.0f) / Main.RATIO);
-        rightWall = Main.getWorld().createBody(bd);
-        shape.setAsBox( (10.0f / 2.0f) / Main.RATIO, (Main.displayMetrics.heightPixels / 2.0f) / Main.RATIO );
+        bd.position = new Vec2(gameWorld.getDisplayMetrics().widthPixels / gameWorld.ratio(), (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio());
+        rightWall = gameWorld.getWorld().createBody(bd);
+        shape.setAsBox( (10.0f / 2.0f) / gameWorld.ratio(), (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
         //shape.setAsEdge(new Vec2(0.0f, -40.0f), new Vec2(0.0f, 1000.0f));
         rightWall.createFixture(shape, 0.0f);
 
 
         //Left Wall
-        bd.position = new Vec2(0.0f, (Main.displayMetrics.heightPixels / 2) / Main.RATIO);
-        leftWall = Main.getWorld().createBody(bd);
-        shape.setAsBox( (10.0f / 2.0f) / Main.RATIO, (Main.displayMetrics.heightPixels / 2.0f) / Main.RATIO );
+        bd.position = new Vec2(0.0f, (gameWorld.getDisplayMetrics().heightPixels / 2) / gameWorld.ratio());
+        leftWall = gameWorld.getWorld().createBody(bd);
+        shape.setAsBox( (10.0f / 2.0f) / gameWorld.ratio(), (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
         //shape.setAsEdge(new Vec2(0.0f, -40.0f), new Vec2(0.0f, 1000.0f));
         leftWall.createFixture(shape, 0.0f);
 
 
         //Roof
-        bd.position = new Vec2((Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, 0.0f );
-        roof = Main.getWorld().createBody(bd);
-        shape.setAsBox( (Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO, (10.0f / 2.0f) / Main.RATIO );
+        bd.position = new Vec2((gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), 0.0f );
+        roof = gameWorld.getWorld().createBody(bd);
+        shape.setAsBox( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(), (10.0f / 2.0f) / gameWorld.ratio() );
         //shape.setAsEdge(new Vec2(0.0f, -40.0f), new Vec2(0.0f, 1000.0f));
         roof.createFixture(shape, 0.0f);
 

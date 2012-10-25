@@ -1,7 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
 import android.graphics.Matrix;
-import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
 import org.jbox2d.dynamics.joints.ConstantVolumeJointDef;
@@ -47,15 +46,18 @@ public class Blob extends Actor
 
     /**
      * Blob constructor.
-     * @param resources The project resources object.
+     * @param myGameWorld A reference to the game world.
      */
-    public Blob(Resources resources)
+    public Blob(GameWorld myGameWorld)
     {
+        //Set the value of the gameWorld reference inherited from Actor.
+        gameWorld = myGameWorld;
+
         adjCircles = new Body[NUM_CIRCLES];
 
         health = 100;
 
-        shotgunSprite = BitmapFactory.decodeResource(resources, R.drawable.shotgun);
+        shotgunSprite = BitmapFactory.decodeResource(myGameWorld.getResources(), R.drawable.shotgun);
 
         matrix = new Matrix();
 
@@ -75,12 +77,12 @@ public class Blob extends Actor
         setBodyDef(new BodyDef());
         getBodyDef().type = BodyType.DYNAMIC;
         getBodyDef().fixedRotation = true;
-        getBodyDef().position = new Vec2( (Main.displayMetrics.widthPixels / 2.0f) / Main.RATIO,
-                                          (Main.displayMetrics.heightPixels / 2.0f) / Main.RATIO );
+        getBodyDef().position = new Vec2( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(),
+                                          (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
 
 
         //Apply these characteristics to the body and add it to the world.
-        setBody( Main.getWorld().createBody( getBodyDef() ) );
+        setBody( gameWorld.getWorld().createBody( getBodyDef() ) );
         getBody().createFixture(fixtDef); //add the shape
 
         ConstantVolumeJointDef cvjd = new ConstantVolumeJointDef();
@@ -99,7 +101,7 @@ public class Blob extends Actor
             bd.position = new Vec2(getBodyDef().position.x + 1.5f * FloatMath.cos(2.0f*(3.14592f) * i/NUM_CIRCLES),
                                    getBodyDef().position.y + 1.5f * FloatMath.sin(2.0f*(3.14592f) * i/NUM_CIRCLES));
 
-            adjCircles[i] = Main.getWorld().createBody( bd );
+            adjCircles[i] = gameWorld.getWorld().createBody( bd );
             adjCircles[i].createFixture(fixtDef);
 
             cvjd.addBody(adjCircles[i]);
@@ -116,7 +118,7 @@ public class Blob extends Actor
                 jointDef.frequencyHz = 2.0f;
                 jointDef.dampingRatio = 2.0f;
 
-                Main.getWorld().createJoint(jointDef);
+                gameWorld.getWorld().createJoint(jointDef);
             }
         }
 
@@ -163,23 +165,23 @@ public class Blob extends Actor
 
         cvjd.frequencyHz = 20.0f;
         cvjd.dampingRatio = 25.0f;
-        Main.getWorld().createJoint(cvjd);
+        gameWorld.getWorld().createJoint(cvjd);
 
 
         //Add Blob into the actors set.
-        Main.pushActor(this);
+        gameWorld.pushActor(this);
     }
 
     /**
      * Constructor that takes the position coordinates of blob.
+     * @param myGameWorld A reference to the game world.
      * @param x The horizontal coordinate.
      * @param y The vertical coordinate.
-     * @param resources The project resources object.
      */
-    public Blob(float x, float y, Resources resources)
+    public Blob(GameWorld myGameWorld, float x, float y)
     {
-        this(resources);
-        getBodyDef().position = new Vec2(x / Main.RATIO, y / Main.RATIO);
+        this(myGameWorld);
+        getBodyDef().position = new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio());
     }
 
     @Override
@@ -188,7 +190,7 @@ public class Blob extends Actor
         Path path = new Path();
 
         //Go to the first adjacent circle and start from there.
-        path.moveTo(adjCircles[0].getPosition().x * Main.RATIO, adjCircles[0].getPosition().y * Main.RATIO);
+        path.moveTo(adjCircles[0].getPosition().x * gameWorld.ratio(), adjCircles[0].getPosition().y * gameWorld.ratio());
 
         //Go through all adjacent circles applying some awesome math to create
         //a smooth bezier curve around them.
@@ -196,20 +198,20 @@ public class Blob extends Actor
         //The number of circles has to be a multiple of 3 for this to work!
         for (int i = 0; i < adjCircles.length;)
         {
-            Vec2 q0 = new Vec2(adjCircles[i].getPosition().x * Main.RATIO, adjCircles[i].getPosition().y * Main.RATIO);
+            Vec2 q0 = new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(), adjCircles[i].getPosition().y * gameWorld.ratio());
             i++;
-            Vec2 q1 = new Vec2(adjCircles[i].getPosition().x * Main.RATIO, adjCircles[i].getPosition().y * Main.RATIO);
+            Vec2 q1 = new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(), adjCircles[i].getPosition().y * gameWorld.ratio());
             i++;
-            Vec2 q2 = new Vec2(adjCircles[i].getPosition().x * Main.RATIO, adjCircles[i].getPosition().y * Main.RATIO);
+            Vec2 q2 = new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(), adjCircles[i].getPosition().y * gameWorld.ratio());
             i++;
             Vec2 q3 = new Vec2();
             if (i < adjCircles.length)
             {
-                q3 = new Vec2(adjCircles[i].getPosition().x * Main.RATIO, adjCircles[i].getPosition().y * Main.RATIO);
+                q3 = new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(), adjCircles[i].getPosition().y * gameWorld.ratio());
             }
             else
             {
-                q3 = new Vec2(adjCircles[0].getPosition().x * Main.RATIO, adjCircles[0].getPosition().y * Main.RATIO);
+                q3 = new Vec2(adjCircles[0].getPosition().x * gameWorld.ratio(), adjCircles[0].getPosition().y * gameWorld.ratio());
             }
 
             Vec2 p1 = new Vec2();
@@ -244,19 +246,21 @@ public class Blob extends Actor
 
         canvas.drawPath(path, paint);
 
-        //Now draw the shotgun.
+        //Now draw the brain and the shotgun.
         matrix.reset();
 
-        if ( Main.getGravity().y < 0 )
+        if ( gameWorld.getGravity().y < -0.5f )
         {
+            //flip the sprites if going left
             matrix.setScale(-1.0f, 1.0f);
         }
         else
         {
             matrix.setScale(1.0f, 1.0f);
         }
-        matrix.postTranslate(getBody().getPosition().x * Main.RATIO,
-                             getBody().getPosition().y * Main.RATIO - 15.0f);
+
+        matrix.postTranslate(getBody().getPosition().x * gameWorld.ratio(),
+                             getBody().getPosition().y * gameWorld.ratio() - 15.0f);
 
         canvas.drawBitmap(shotgunSprite, matrix, null);
     }
@@ -264,7 +268,7 @@ public class Blob extends Actor
     @Override
     public void charLogic()
     {
-        float moveSpeed = Main.getGravity().y;
+        float moveSpeed = gameWorld.getGravity().y;
 
         //Cap the movement speed at 4.
         if (moveSpeed > 4.0f)
@@ -276,7 +280,8 @@ public class Blob extends Actor
             moveSpeed = -4.0f;
         }
 
-        Main.getBlob().getBody().setLinearVelocity(new Vec2(moveSpeed, 0.0f));
+        //This is still not correct. I am overriding the x component of velocity.
+        getBody().setLinearVelocity(new Vec2(moveSpeed, getBody().getLinearVelocity().y));
     }
 
     /**

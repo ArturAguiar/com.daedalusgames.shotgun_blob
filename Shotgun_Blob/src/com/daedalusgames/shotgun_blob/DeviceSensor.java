@@ -10,13 +10,15 @@ import android.hardware.SensorEventListener;
  * // -------------------------------------------------------------------------
 /**
  *  Custom android sensor class.
+ *  This class is deactivated for now. I am considering removing it.
+ *  TODO: remove this?
  *
  *  @author Artur
  *  @version Oct 5, 2012
  */
 public class DeviceSensor implements SensorEventListener
 {
-    private final Sensor sensor;
+    //private final Sensor sensor;
 
     /**
      * The sensor constructor.
@@ -24,7 +26,7 @@ public class DeviceSensor implements SensorEventListener
      */
     public DeviceSensor(int sensorType)
     {
-        sensor = Main.getSensorManager().getDefaultSensor(sensorType);
+        //sensor = Main.getSensorManager().getDefaultSensor(sensorType);
     }
 
     /**
@@ -32,7 +34,7 @@ public class DeviceSensor implements SensorEventListener
      */
     public void onResume()
     {
-        Main.getSensorManager().registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        //Main.getSensorManager().registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     /**
@@ -40,7 +42,7 @@ public class DeviceSensor implements SensorEventListener
      */
     public void onPause()
     {
-        Main.getSensorManager().unregisterListener(this);
+        //Main.getSensorManager().unregisterListener(this);
     }
 
     /**
@@ -59,24 +61,7 @@ public class DeviceSensor implements SensorEventListener
      */
     public void onSensorChanged(SensorEvent event)
     {
-        //float y = event.values[1];
-
-        /*
-        if (y > 4.0f)
-        {
-            y = 4.0f;
-        }
-        else if (y < -4.0f)
-        {
-            y = -4.0f;
-        }
-
-        if (Main.getBlob() != null && Main.getBlob().getBody() != null)
-        {
-            Main.getBlob().getBody().setLinearVelocity(new Vec2(y, 0.0f));
-        }*/
-
-        Main.setGravity( new Vec2(event.values[0], event.values[1]) );
+        //Main.setGravity( new Vec2(event.values[0], event.values[1]) );
     }
 
 }

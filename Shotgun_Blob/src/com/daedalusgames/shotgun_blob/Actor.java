@@ -15,6 +15,9 @@ import org.jbox2d.dynamics.Body;
  */
 abstract public class Actor
 {
+    /** A reference to the game world */
+    protected GameWorld gameWorld;
+
     /** The box2d body */
     private Body body;
 
@@ -81,6 +84,6 @@ abstract public class Actor
      */
     public float toDP(float px)
     {
-        return (px / (Main.displayMetrics.densityDpi / 160.0f));
+        return (px / (gameWorld.getDisplayMetrics().densityDpi / 160.0f));
     }
 }

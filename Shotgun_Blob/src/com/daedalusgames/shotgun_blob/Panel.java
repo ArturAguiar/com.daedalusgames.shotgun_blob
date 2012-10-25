@@ -1,6 +1,5 @@
 package com.daedalusgames.shotgun_blob;
 
-import android.content.res.Resources;
 import android.view.MotionEvent;
 import android.graphics.Color;
 import android.graphics.Canvas;
@@ -18,6 +17,8 @@ import android.view.SurfaceView;
  */
 public class Panel extends SurfaceView implements SurfaceHolder.Callback
 {
+    private GameWorld gameWorld;
+
     private ViewThread viewThread;
 
     private Box2DThread box2dThread;
@@ -26,25 +27,19 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
     @SuppressWarnings("unused")
     private Level lvl;
 
-    //private Bitmap myBitmap;
-
-    private Resources resources;
-
-    private int tapX;
-    private int tapY;
-
     /**
      * The panel constructor.
      * @param context The application context.
+     * @param myGameWorld The game world.
      */
-    public Panel(Context context)
+    public Panel(Context context, GameWorld myGameWorld)
     {
         super(context);
         setKeepScreenOn(true);
 
-        resources = getResources();
+        gameWorld = myGameWorld;
 
-        //myBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher); // icon
+        gameWorld.setResources(getResources());
 
         getHolder().addCallback(this);
 
@@ -52,11 +47,11 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         viewThread = new ViewThread(this);
 
         //Create the box2D dedicated thread.
-        box2dThread = new Box2DThread();
+        box2dThread = new Box2DThread(gameWorld);
 
-        Main.setBlob(new Blob(resources));
+        gameWorld.setBlob(new Blob(gameWorld));
 
-        lvl = new Level();
+        lvl = new Level(gameWorld);
     }
 
     /**
@@ -71,7 +66,7 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         canvas.drawColor(Color.WHITE);
 
         //Draw all the actors inside the set.
-        for (Actor actor : Main.getActors())
+        for (Actor actor : gameWorld.getActors())
         {
             if (actor != null)
             {
@@ -79,27 +74,14 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
             }
         }
 
-        //Debug-draw the box3d world
-        //DebugDraw.draw(Main.getWorld(), canvas);
-
-        /*
-        canvas.drawBitmap(myBitmap, tapX - myBitmap.getWidth() / 2, tapY - myBitmap.getHeight() / 2, null);
-        Paint paint = new Paint();
-        paint.setDither(true);
-        paint.setColor(Color.RED);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeJoin(Paint.Join.ROUND);
-        paint.setStrokeCap(Paint.Cap.ROUND);
-        paint.setStrokeWidth(3);
-        paint.setAntiAlias(true);
-        canvas.drawCircle(50.0f, 50.0f, 20.0f, paint);
-        */
+        //Debug-draw the box3d world.
+        DebugDraw.draw(gameWorld, canvas);
     }
 
 
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
     {
-        // TODO: Should I handle any screen resizing here or is the game going to run in a fixed perspective?
+        //The game has a fixed perspective: landscape.
     }
 
 
@@ -116,7 +98,7 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 
         if (!box2dThread.isAlive())
         {
-            box2dThread = new Box2DThread();
+            box2dThread = new Box2DThread(gameWorld);
             box2dThread.setRunning(true);
             box2dThread.start();
         }
@@ -141,12 +123,9 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public boolean onTouchEvent(MotionEvent event)
     {
-        tapX = (int) event.getX();
-        tapY = (int) event.getY();
-
-        if ( !Main.getWorld().isLocked() )
+        if ( !gameWorld.getWorld().isLocked() )
         {
-            new RandomObject(tapX, tapY, resources);
+            new RandomObject(gameWorld, event.getX(), event.getY());
         }
 
         return super.onTouchEvent(event);
