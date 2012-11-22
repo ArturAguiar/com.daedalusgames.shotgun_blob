@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.Log;
 import android.content.res.Resources;
 import java.util.HashSet;
 import android.hardware.Sensor;
@@ -60,23 +61,32 @@ public class GameWorld implements SensorEventListener
     /** The set containing references to all actors. */
     private HashSet<Actor> actors;
 
+    /** The set containing actors that still have no bodies. */
+    private HashSet<Actor> toBeCreated;
+
     /** The main character. */
     private Blob blob;
+
+    /** The current level. */
+    private Level level;
 
 
     /**
      * The game world constructor.
      * @param gravity The gravity vector for the box2d world.
      * @param doSleep Allow bodies to sleep in the box2d world.
+     * @param metrics The display metrics of the screen.
      */
-    public GameWorld(Vec2 gravity, boolean doSleep)
+    public GameWorld(Vec2 gravity, boolean doSleep, DisplayMetrics metrics)
     {
         world = new World(gravity, doSleep);
-        ratio = 30.0f;
 
-        displayMetrics = new DisplayMetrics();
+        displayMetrics = metrics;
+
+        ratio = 30.0f * displayMetrics.density;
 
         actors = new HashSet<Actor>();
+        toBeCreated = new HashSet<Actor>();
     }
 
     /**
@@ -183,6 +193,24 @@ public class GameWorld implements SensorEventListener
     }
 
     /**
+     * The level getter.
+     * @return The currentLevel.
+     */
+    public Level getLevel()
+    {
+        return level;
+    }
+
+    /**
+     * The setter for the level.
+     * @param level The new level.
+     */
+    public void setLevel(Level level)
+    {
+        this.level = level;
+    }
+
+    /**
      * The getter for all the actors.
      * @return HashSet with all actors.
      */
@@ -192,12 +220,57 @@ public class GameWorld implements SensorEventListener
     }
 
     /**
-     * Adds an actor to the array list of all actors.
+     * Queue the actor to have its physical entities created
+     * as soon as it is safe to do so.
+     * This is meant to be called by the Actor's constructor.
+     * @param actor The actor to be queued.
+     */
+    public void queueActor(Actor actor)
+    {
+        toBeCreated.add(actor);
+    }
+
+    /**
+     * Safely create an actor's physical entities.
+     */
+    public void createAllEntities()
+    {
+        for (Actor actor : toBeCreated)
+        {
+            actor.createEntity();
+        }
+
+        //Clear the set now that they were all added.
+        toBeCreated.clear();
+    }
+
+
+    /**
+     * Adds a complete actor to the array list of all actors.
+     * This is meant to be called by the Actor's createEntity method.
      * @param actor The actor to be added.
      */
     public void pushActor(Actor actor)
     {
-        actors.add(actor);
+        if (actor != null)
+        {
+            actors.add(actor);
+        }
+        else
+        {
+            Log.v("GameWorld", "A null actor was trying to be added!");
+        }
+    }
+
+    /**
+     * Call the character specific logic for every actor.
+     */
+    public void runAI()
+    {
+        for (Actor actor : getActors())
+        {
+            actor.charLogic();
+        }
     }
 
     /**

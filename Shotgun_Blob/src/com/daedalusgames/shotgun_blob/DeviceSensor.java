@@ -1,7 +1,5 @@
 package com.daedalusgames.shotgun_blob;
 
-import org.jbox2d.common.Vec2;
-import android.hardware.SensorManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;

@@ -37,8 +37,8 @@ public class RandomObject extends Actor
      * Constructor that takes the position coordinates.
      * Right now this is just for testing.
      * @param myGameWorld The game world reference.
-     * @param x The horizontal coordinate.
-     * @param y The vertical coordinate.
+     * @param x The horizontal coordinate in pixels.
+     * @param y The vertical coordinate in pixels.
      */
     public RandomObject(GameWorld myGameWorld, float x, float y)
     {
@@ -57,8 +57,17 @@ public class RandomObject extends Actor
                                                 (int)(2.0f * gameWorld.ratio()),
                                                 false);
 
+        this.setInitialPosition(new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio()));
+
         matrix = new Matrix();
 
+        //Push the Actor to the toBeCreated set so that the physical entities are added safely.
+        gameWorld.queueActor(this);
+    }
+
+    @Override
+    public void createEntity()
+    {
         //Body inherited from actor
         CircleShape circleShape = new CircleShape();
         circleShape.m_radius = 1.0f;
@@ -69,25 +78,26 @@ public class RandomObject extends Actor
         //BodyDef inherited from actor.
         setBodyDef( new BodyDef() );
         getBodyDef().type = BodyType.DYNAMIC;
-        getBodyDef().position = new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio());
+
+
+        getBodyDef().position = new Vec2(getInitialPosition().x,
+                                         getInitialPosition().y);
+
         setBody( gameWorld.getWorld().createBody( getBodyDef() ) );
 
-        if (getBody() != null)
+        if (gameWorld.getWorld().getBodyCount() % 2 == 1)
         {
-            if (gameWorld.getWorld().getBodyCount() % 2 == 1)
-            {
-                Fixture fixt = getBody().createFixture(circleShape, 1.0f);
-                fixt.m_restitution = 0.3f;
-                gameWorld.pushActor(this);
-            }
-            else
-            {
-                Fixture fixt = getBody().createFixture(polyShape, 1.0f);
-                fixt.m_restitution = 0.3f;
-                gameWorld.pushActor(this);
-            }
-
+            Fixture fixt = getBody().createFixture(circleShape, 1.0f);
+            fixt.m_restitution = 0.3f;
         }
+        else
+        {
+            Fixture fixt = getBody().createFixture(polyShape, 1.0f);
+            fixt.m_restitution = 0.3f;
+        }
+
+        //Add Blob into the actors set now that it is complete.
+        gameWorld.pushActor(this);
     }
 
     @Override

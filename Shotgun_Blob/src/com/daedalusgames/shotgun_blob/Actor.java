@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import org.jbox2d.common.Vec2;
 import android.graphics.Canvas;
 import org.jbox2d.dynamics.BodyDef;
 import org.jbox2d.dynamics.Body;
@@ -24,6 +25,14 @@ abstract public class Actor
     /** The box2d bodyDef */
     private BodyDef bodyDef;
 
+    /** The initial position of the actor. */
+    private Vec2 initialPosition;
+
+
+    /**
+     * This creates the physical Box2D entities of an actor.
+     */
+    abstract public void createEntity();
 
     /**
      * Method responsible for drawing the sprite on the screen.
@@ -33,7 +42,7 @@ abstract public class Actor
 
     /**
      * Method where all character specific logic is located.
-     * This is run after every box2d step.     *
+     * This is run after every box2d step.
      */
     abstract public void charLogic();
 
@@ -73,6 +82,24 @@ abstract public class Actor
     public BodyDef getBodyDef()
     {
         return bodyDef;
+    }
+
+    /**
+     * The initial position getter.
+     * @return The initial position.
+     */
+    protected Vec2 getInitialPosition()
+    {
+        return initialPosition;
+    }
+
+    /**
+     * The initial position setter.
+     * @param newInitialPosition The initial position of the actor's body.
+     */
+    protected void setInitialPosition(Vec2 newInitialPosition)
+    {
+        initialPosition = newInitialPosition;
     }
 
     /**

@@ -57,11 +57,12 @@ public class Box2DThread extends Thread
                                      velocityIterations,
                                      positionIterations);
 
-                //Call the character specific logic for every actor.
-                for (Actor actor : gameWorld.getActors())
-                {
-                    actor.charLogic();
-                }
+                //Create the actors' physical entities safely outside of the time-step.
+                gameWorld.createAllEntities();
+
+                //Run the all of the actors' "AI".
+                gameWorld.runAI();
+
             }
 
             try

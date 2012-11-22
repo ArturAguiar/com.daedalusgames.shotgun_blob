@@ -1,5 +1,8 @@
 package com.daedalusgames.shotgun_blob;
 
+import org.jbox2d.dynamics.joints.RevoluteJointDef;
+import org.jbox2d.collision.shapes.PolygonShape;
+import org.jbox2d.dynamics.joints.PrismaticJointDef;
 import android.graphics.Matrix;
 import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
@@ -10,7 +13,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Canvas;
 import org.jbox2d.dynamics.Body;
-import org.jbox2d.dynamics.joints.DistanceJointDef;
 import org.jbox2d.dynamics.FixtureDef;
 import org.jbox2d.dynamics.BodyType;
 import org.jbox2d.collision.shapes.CircleShape;
@@ -30,8 +32,17 @@ public class Blob extends Actor
     /** The surrounding circle bodies */
     private Body[] adjCircles;
 
+    /** the joint helpers. */
+    private Body[] jointHelpers;
+
     /** Blob's health */
     private int health;
+
+    /** The current movement speed of blob. */
+    private float moveSpeed;
+
+    /** The maximum movement speed of blob. */
+    private float maxSpeed;
 
     /** The number of adjacent circles to simulate a soft body */
     //Multiple of 3, please. At least 6. I advise for 12.
@@ -43,6 +54,19 @@ public class Blob extends Actor
     /** The image transformation matrix. */
     private Matrix matrix;
 
+    /** The angle that the last shot was aimed at in degrees. */
+    private float shotAt;
+
+    /** The timer that indicates if the shotgun is reloaded or not.
+     *  Values bigger than zero indicate that it is still reloading. */
+    private int reloadTimer;
+
+    /** The time for Blob to reload his shotgun. */
+    private int reloadTime;
+
+    /** The bitmap paint. */
+    private Paint bitmapPaint;
+
 
     /**
      * Blob constructor.
@@ -53,14 +77,31 @@ public class Blob extends Actor
         //Set the value of the gameWorld reference inherited from Actor.
         gameWorld = myGameWorld;
 
-        adjCircles = new Body[NUM_CIRCLES];
-
         health = 100;
 
-        shotgunSprite = BitmapFactory.decodeResource(myGameWorld.getResources(), R.drawable.shotgun);
+        maxSpeed = 5.0f;
+        moveSpeed = 0.0f;
+
+        adjCircles = new Body[NUM_CIRCLES];
+
+        jointHelpers = new Body[NUM_CIRCLES / 3];
+
+        shotgunSprite = BitmapFactory.decodeResource(myGameWorld.getResources(), R.drawable.shotgun_sheet);
 
         matrix = new Matrix();
 
+        reloadTimer = 0;
+        reloadTime = 40;
+
+        bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+
+        //Push the Actor to the toBeCreated set so that the physical entities are added safely.
+        gameWorld.queueActor(this);
+    }
+
+    @Override
+    public void createEntity()
+    {
         //The shape of the body
         CircleShape shape = new CircleShape();
         shape.m_radius = 0.5f;
@@ -70,16 +111,24 @@ public class Blob extends Actor
         fixtDef.density = 0.9f;
         fixtDef.restitution = 0.3f;
         fixtDef.shape = shape;
-        fixtDef.friction = 0.4f;
+        fixtDef.friction = 1.0f;
 
 
         //BodyDef inherited from actor.
         setBodyDef(new BodyDef());
         getBodyDef().type = BodyType.DYNAMIC;
         getBodyDef().fixedRotation = true;
-        getBodyDef().position = new Vec2( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(),
-                                          (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
 
+        if ( getInitialPosition() != null)
+        {
+            getBodyDef().position = new Vec2(getInitialPosition().x,
+                getInitialPosition().y);
+        }
+        else
+        {
+            getBodyDef().position = new Vec2( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(),
+                                          (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
+        }
 
         //Apply these characteristics to the body and add it to the world.
         setBody( gameWorld.getWorld().createBody( getBodyDef() ) );
@@ -96,8 +145,8 @@ public class Blob extends Actor
             fixtDef.density = 1.5f;
             BodyDef bd = new BodyDef();
             bd.type = BodyType.DYNAMIC;
-            bd.bullet = true;
-            bd.fixedRotation = true;
+            //bd.bullet = true;
+            //bd.fixedRotation = true;
             bd.position = new Vec2(getBodyDef().position.x + 1.5f * FloatMath.cos(2.0f*(3.14592f) * i/NUM_CIRCLES),
                                    getBodyDef().position.y + 1.5f * FloatMath.sin(2.0f*(3.14592f) * i/NUM_CIRCLES));
 
@@ -106,69 +155,48 @@ public class Blob extends Actor
 
             cvjd.addBody(adjCircles[i]);
 
+            //The wheel joint would be perfect here, but it has not yet been ported to jBox2D,
+            //so this leaves us having to create two joints and two bodies.
+            //Maybe I could port it........ nah.
             if ( NUM_CIRCLES / 4 > 0 && i % (NUM_CIRCLES / 4) == 0 )
             {
-                //Connect the adjacent circle to the center circle.
-                DistanceJointDef jointDef = new DistanceJointDef();
+                PolygonShape boxShape = new PolygonShape();
+                boxShape.setAsBox(0.2f, 0.2f);
 
-                jointDef.initialize(adjCircles[i], getBody(),
-                                    adjCircles[i].getWorldCenter(),
-                                    getBody().getWorldCenter());
+                fixtDef.shape = boxShape;
+                jointHelpers[i / 3] = gameWorld.getWorld().createBody(bd);
+                jointHelpers[i / 3].createFixture(fixtDef);
+
+                //Connect the adjacent joint helper to the inner circle with a prismatic joint.
+                //This will only allow for one axis of movement.
+                PrismaticJointDef jointDef = new PrismaticJointDef();
+
+                jointDef.initialize(jointHelpers[i / 3], getBody(),
+                                    getBody().getWorldCenter(),
+                                    new Vec2(FloatMath.cos(2.0f*(3.14592f) * i/NUM_CIRCLES),
+                                             FloatMath.sin(2.0f*(3.14592f) * i/NUM_CIRCLES) ));
                 jointDef.collideConnected = true;
-                jointDef.frequencyHz = 2.0f;
-                jointDef.dampingRatio = 2.0f;
+                jointDef.maxMotorForce = 15.0f;
+                jointDef.motorSpeed = 10.0f;
+                //jointDef.enableMotor = true;
 
                 gameWorld.getWorld().createJoint(jointDef);
+
+
+                //Connect the adjacent circle to the joint helper so that it can rotate.
+                RevoluteJointDef revJointDef = new RevoluteJointDef();
+                revJointDef.initialize(adjCircles[i], jointHelpers[i / 3], adjCircles[i].getWorldCenter());
+                jointDef.collideConnected = false;
+
+                gameWorld.getWorld().createJoint(revJointDef);
             }
         }
-
-        //DistanceJointDef jointDef = new DistanceJointDef();
-
-        //Create all the joints.
-        /*
-        for (int i = 0; i < NUM_CIRCLES; i++)
-        {
-            Body currentBody = adjCircles[i];
-            Body neighborBody;
-
-            //Wrap around the circle back to the first at index 0.
-            if (i + 1 < NUM_CIRCLES)
-            {
-                neighborBody = adjCircles[i+1];
-            }
-            else
-            {
-                neighborBody = adjCircles[0];
-            }
-
-            //Connect the outer circles to each other.
-            jointDef.initialize(currentBody, neighborBody,
-                                currentBody.getWorldCenter(),
-                                neighborBody.getWorldCenter() );
-            jointDef.collideConnected = true;
-            jointDef.frequencyHz = 10.0f;
-            jointDef.dampingRatio = 0.5f;
-
-            Main.getWorld().createJoint(jointDef);
-
-            //Connect the adjacent circle to the center circle.
-            jointDef.initialize(currentBody, getBody(),
-                                currentBody.getWorldCenter(),
-                                getBody().getWorldCenter());
-            jointDef.collideConnected = true;
-            jointDef.frequencyHz = 4.5f;
-            jointDef.dampingRatio = 0.5f;
-
-            Main.getWorld().createJoint(jointDef);
-        }
-        */
 
         cvjd.frequencyHz = 20.0f;
         cvjd.dampingRatio = 25.0f;
         gameWorld.getWorld().createJoint(cvjd);
 
-
-        //Add Blob into the actors set.
+        //Add Blob into the actors set now that it is complete.
         gameWorld.pushActor(this);
     }
 
@@ -181,7 +209,7 @@ public class Blob extends Actor
     public Blob(GameWorld myGameWorld, float x, float y)
     {
         this(myGameWorld);
-        getBodyDef().position = new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio());
+        this.setInitialPosition(new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio()));
     }
 
     @Override
@@ -246,12 +274,18 @@ public class Blob extends Actor
 
         canvas.drawPath(path, paint);
 
-        //Now draw the brain and the shotgun.
+
+
+        //Now draw the shotgun.
         matrix.reset();
 
-        if ( gameWorld.getGravity().y < -0.5f )
+        // The frame of the sprite to draw.
+        // 0 = default; 1 = firing; 2 = reloading.
+        int frame = 0;
+
+        if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
         {
-            //flip the sprites if going left
+          //flip the sprites if going left
             matrix.setScale(-1.0f, 1.0f);
         }
         else
@@ -259,30 +293,167 @@ public class Blob extends Actor
             matrix.setScale(1.0f, 1.0f);
         }
 
+        // Move the sprite to the body's position.
         matrix.postTranslate(getBody().getPosition().x * gameWorld.ratio(),
-                             getBody().getPosition().y * gameWorld.ratio() - 15.0f);
+                             getBody().getPosition().y * gameWorld.ratio() - shotgunSprite.getHeight() / 2.0f);
 
-        canvas.drawBitmap(shotgunSprite, matrix, null);
+
+
+        if (shotAt != 0.0f)
+        {
+            // Recalculate the angle accounting for the horizontal flip.
+            float angle = shotAt;
+            if (angle > 90.0f)
+            {
+                angle = -180.0f + angle;
+            }
+            else if (angle < -90.0f)
+            {
+                angle = 180.0f + angle;
+            }
+
+            // Rotate the sprite by the calculated angle.
+            matrix.postRotate(angle,
+                              getBody().getPosition().x * gameWorld.ratio(),
+                              getBody().getPosition().y * gameWorld.ratio());
+        }
+
+
+        if (reloadTimer > reloadTime - reloadTime / 10)
+        {
+            frame = 1;
+        }
+        else if (reloadTimer > 3 * reloadTime / 10)
+        {
+            frame = 0;
+        }
+        else if (reloadTimer > reloadTime / 10)
+        {
+            frame = 2;
+        }
+
+        if (reloadTimer > 0)
+        {
+            // Decrement the timer.
+            reloadTimer--;
+            if (reloadTimer == 0)
+            {
+                // Reset to default angle if ready to shoot again.
+                shotAt = 0.0f;
+            }
+        }
+
+
+        canvas.drawBitmap(Bitmap.createBitmap(shotgunSprite, frame * shotgunSprite.getWidth() / 3, 0, shotgunSprite.getWidth() / 3, shotgunSprite.getHeight()), matrix, bitmapPaint);
     }
 
     @Override
     public void charLogic()
     {
-        float moveSpeed = gameWorld.getGravity().y;
+        //Set the speed to the new value.
+        moveSpeed = gameWorld.getGravity().y / 2.2f;
 
-        //Cap the movement speed at 4.
-        if (moveSpeed > 4.0f)
+        //A comfortable dead-zone.
+        if (moveSpeed > -0.5f && moveSpeed < 0.5f)
         {
-            moveSpeed = 4.0f;
-        }
-        else if (moveSpeed < -4.0f)
-        {
-            moveSpeed = -4.0f;
+            moveSpeed = 0;
         }
 
-        //This is still not correct. I am overriding the x component of velocity.
-        getBody().setLinearVelocity(new Vec2(moveSpeed, getBody().getLinearVelocity().y));
+        //Cap the movement speed at maxSpeed.
+        else if (moveSpeed > maxSpeed)
+        {
+            moveSpeed = maxSpeed;
+        }
+        else if (moveSpeed < -maxSpeed)
+        {
+            moveSpeed = -maxSpeed;
+        }
+
+        //Apply the velocity.
+        getBody().setLinearVelocity(new Vec2(getBody().getLinearVelocity().x + moveSpeed, getBody().getLinearVelocity().y));
+
+        if ( moveSpeed > 0 && getBody().getLinearVelocity().x > maxSpeed )
+        {
+            getBody().setLinearVelocity( new Vec2( maxSpeed , getBody().getLinearVelocity().y ) );
+        }
+        else if ( moveSpeed < 0 && getBody().getLinearVelocity().x < -maxSpeed )
+        {
+            getBody().setLinearVelocity( new Vec2( -maxSpeed , getBody().getLinearVelocity().y ) );
+        }
     }
+
+    /**
+     * Shoots at the specified coordinate.
+     * @param x The x coordinate to shoot at.
+     * @param y The y coordinate to shoot at.
+     */
+    public void shoot(float x, float y)
+    {
+        // Only shoot if completely reloaded.
+        if (reloadTimer > 0)
+        {
+            return;
+        }
+
+        float angle = (float)Math.atan2(y - getBody().getPosition().y * gameWorld.ratio(),
+                                        x - getBody().getPosition().x * gameWorld.ratio());
+
+        Vec2 velocity = new Vec2(-13.0f * FloatMath.cos(angle),
+                                 -13.0f * FloatMath.sin(angle));
+
+        getBody().setLinearVelocity(velocity);
+
+        for (int i = 0; i < adjCircles.length; i++)
+        {
+            adjCircles[i].setLinearVelocity(velocity);
+        }
+
+        shotAt = angle * 180.0f/(3.14159265f);
+        reloadTimer = reloadTime;
+    }
+
+    /**
+     * change the coordinates of the points so that the curve drawn will be smooth.
+     */
+    /*
+    private void smoothCurve(CircularBuffer points)
+    {
+        for (int i = 0; i < adjCircles.length; i++)
+        {
+            points.enqueue(new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(),
+                                    adjCircles[i].getPosition().y * gameWorld.ratio()));
+        }
+
+        //Go through all adjacent circles applying some awesome math to create
+        //a smooth bezier curve around them.
+        //Thanks Dr. Tony Allevato for this!
+        //The number of circles has to be a multiple of 3 for this to work!
+        for (int i = 0; i + 3 < points.size(); i += 3)
+        {
+            Vec2 q0 = new Vec2(points.dequeue());
+            Vec2 q1 = new Vec2(points.dequeue());
+            Vec2 q2 = new Vec2(points.dequeue());
+            Vec2 q3 = new Vec2(points.peek());
+
+            Vec2 p1 = new Vec2(q1);
+            Vec2 p2 = new Vec2(q2);
+
+            // P1 = (1/6)(-5 Q0 + 18 Q1 - 9 Q2 + 2 Q3)
+            p1.x = (1.0f/6.0f)*( -5.0f*q0.x + 18.0f*q1.x - 9.0f*q2.x + 2.0f*q3.x );
+            p1.y = (1.0f/6.0f)*( -5.0f*q0.y + 18.0f*q1.y - 9.0f*q2.y + 2.0f*q3.y );
+
+            // P2 = (1/6)(2 Q0 - 9 Q1 + 18 Q2 - 5 Q3)
+            p2.x = (1.0f/6.0f)*( 2.0f*q0.x - 9.0f*q1.x + 18.0f*q2.x - 5.0f*q3.x );
+            p2.y = (1.0f/6.0f)*( 2.0f*q0.y - 9.0f*q1.y + 18.0f*q2.y - 5.0f*q3.y );
+
+            points.enqueue(q0);
+            points.enqueue(p1);
+            points.enqueue(p2);
+        }
+
+    }
+    */
+
 
     /**
      * Health getter.

@@ -51,8 +51,8 @@ public class ViewThread extends Thread
 
             try
             {
+                // 60 fps...ish
                 Thread.sleep(1000/60);
-                // TODO: How reliable is this method of capping the frame rate?
             }
             catch (InterruptedException e)
             {

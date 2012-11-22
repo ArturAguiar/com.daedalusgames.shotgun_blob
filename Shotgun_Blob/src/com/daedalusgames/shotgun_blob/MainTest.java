@@ -1,6 +1,5 @@
 package com.daedalusgames.shotgun_blob;
 
-import org.jbox2d.common.Vec2;
 import junit.framework.TestCase;
 
 /**

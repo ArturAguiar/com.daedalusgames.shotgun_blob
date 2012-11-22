@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.DisplayMetrics;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.app.Activity;
@@ -30,9 +31,11 @@ public class Main extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-        gameWorld = new GameWorld(new Vec2(0.0f, 10.0f), true);
+        DisplayMetrics metrics = new DisplayMetrics();
 
-        getWindowManager().getDefaultDisplay().getMetrics(gameWorld.getDisplayMetrics());
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        gameWorld = new GameWorld(new Vec2(0.0f, 10.0f), true, metrics);
 
         super.onCreate(savedInstanceState);
         setContentView(new Panel(this, gameWorld));
