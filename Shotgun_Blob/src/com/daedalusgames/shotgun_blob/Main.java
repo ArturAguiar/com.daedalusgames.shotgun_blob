@@ -35,10 +35,11 @@ public class Main extends Activity
 
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-        gameWorld = new GameWorld(new Vec2(0.0f, 10.0f), true, metrics);
+        gameWorld = new GameWorld(new Vec2(0.0f, 10.0f), this.getResources(), metrics);
 
         super.onCreate(savedInstanceState);
         setContentView(new Panel(this, gameWorld));
+
 
         gameWorld.initializeSensors((SensorManager) getSystemService(SENSOR_SERVICE));
     }

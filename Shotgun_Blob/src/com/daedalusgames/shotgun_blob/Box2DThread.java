@@ -60,7 +60,7 @@ public class Box2DThread extends Thread
                 //Create the actors' physical entities safely outside of the time-step.
                 gameWorld.createAllEntities();
 
-                //Run the all of the actors' "AI".
+                //Run the all of the game's "AI".
                 gameWorld.runAI();
 
             }
@@ -78,7 +78,7 @@ public class Box2DThread extends Thread
                 }
                 else
                 {
-                    Log.i("Box2D Thread", "running behind!");
+                    //Log.i("Box2D Thread", "running behind!");
                 }
                 long endTime = System.nanoTime();
 

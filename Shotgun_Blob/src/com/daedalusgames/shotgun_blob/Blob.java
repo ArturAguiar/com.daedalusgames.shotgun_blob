@@ -77,18 +77,22 @@ public class Blob extends Actor
         //Set the value of the gameWorld reference inherited from Actor.
         gameWorld = myGameWorld;
 
+        setType(Actor.Type.BLOB);
+
         health = 100;
 
-        maxSpeed = 5.0f;
+        maxSpeed = 8.0f;
         moveSpeed = 0.0f;
 
         adjCircles = new Body[NUM_CIRCLES];
 
         jointHelpers = new Body[NUM_CIRCLES / 3];
 
+        matrix = new Matrix();
+
         shotgunSprite = BitmapFactory.decodeResource(myGameWorld.getResources(), R.drawable.shotgun_sheet);
 
-        matrix = new Matrix();
+
 
         reloadTimer = 0;
         reloadTime = 40;
@@ -97,6 +101,18 @@ public class Blob extends Actor
 
         //Push the Actor to the toBeCreated set so that the physical entities are added safely.
         gameWorld.queueActor(this);
+    }
+
+    /**
+     * Constructor that takes the position coordinates of blob.
+     * @param myGameWorld A reference to the game world.
+     * @param x The horizontal coordinate in pixels.
+     * @param y The vertical coordinate in pixels.
+     */
+    public Blob(GameWorld myGameWorld, float x, float y)
+    {
+        this(myGameWorld);
+        this.setInitialPosition(new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio()));
     }
 
     @Override
@@ -122,12 +138,12 @@ public class Blob extends Actor
         if ( getInitialPosition() != null)
         {
             getBodyDef().position = new Vec2(getInitialPosition().x,
-                getInitialPosition().y);
+                                             getInitialPosition().y);
         }
         else
         {
             getBodyDef().position = new Vec2( (gameWorld.getDisplayMetrics().widthPixels / 2.0f) / gameWorld.ratio(),
-                                          (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
+                                              (gameWorld.getDisplayMetrics().heightPixels / 2.0f) / gameWorld.ratio() );
         }
 
         //Apply these characteristics to the body and add it to the world.
@@ -147,11 +163,12 @@ public class Blob extends Actor
             bd.type = BodyType.DYNAMIC;
             //bd.bullet = true;
             //bd.fixedRotation = true;
+            bd.angularDamping = 30.0f;
             bd.position = new Vec2(getBodyDef().position.x + 1.5f * FloatMath.cos(2.0f*(3.14592f) * i/NUM_CIRCLES),
                                    getBodyDef().position.y + 1.5f * FloatMath.sin(2.0f*(3.14592f) * i/NUM_CIRCLES));
 
             adjCircles[i] = gameWorld.getWorld().createBody( bd );
-            adjCircles[i].createFixture(fixtDef);
+            adjCircles[i].createFixture(fixtDef).setUserData(this); // Set a reference to this actor as user data.
 
             cvjd.addBody(adjCircles[i]);
 
@@ -165,7 +182,7 @@ public class Blob extends Actor
 
                 fixtDef.shape = boxShape;
                 jointHelpers[i / 3] = gameWorld.getWorld().createBody(bd);
-                jointHelpers[i / 3].createFixture(fixtDef);
+                jointHelpers[i / 3].createFixture(fixtDef).setUserData(this); // Set a reference to this actor as user data.
 
                 //Connect the adjacent joint helper to the inner circle with a prismatic joint.
                 //This will only allow for one axis of movement.
@@ -198,18 +215,6 @@ public class Blob extends Actor
 
         //Add Blob into the actors set now that it is complete.
         gameWorld.pushActor(this);
-    }
-
-    /**
-     * Constructor that takes the position coordinates of blob.
-     * @param myGameWorld A reference to the game world.
-     * @param x The horizontal coordinate.
-     * @param y The vertical coordinate.
-     */
-    public Blob(GameWorld myGameWorld, float x, float y)
-    {
-        this(myGameWorld);
-        this.setInitialPosition(new Vec2(x / gameWorld.ratio(), y / gameWorld.ratio()));
     }
 
     @Override
@@ -254,7 +259,6 @@ public class Blob extends Actor
             p2.y = (1.0f/6.0f)*( 2.0f*q0.y - 9.0f*q1.y + 18.0f*q2.y - 5.0f*q3.y );
 
             path.cubicTo(p1.x, p1.y, p2.x, p2.y, q3.x, q3.y);
-
         }
 
         Paint paint = new Paint();
@@ -286,16 +290,16 @@ public class Blob extends Actor
         if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
         {
           //flip the sprites if going left
-            matrix.setScale(-1.0f, 1.0f);
+            matrix.setScale(-1.0f, -1.0f);
         }
         else
         {
-            matrix.setScale(1.0f, 1.0f);
+            matrix.setScale(1.0f, -1.0f);
         }
 
         // Move the sprite to the body's position.
         matrix.postTranslate(getBody().getPosition().x * gameWorld.ratio(),
-                             getBody().getPosition().y * gameWorld.ratio() - shotgunSprite.getHeight() / 2.0f);
+                             getBody().getPosition().y * gameWorld.ratio() + shotgunSprite.getHeight() / 2.0f);
 
 
 
@@ -351,7 +355,7 @@ public class Blob extends Actor
     public void charLogic()
     {
         //Set the speed to the new value.
-        moveSpeed = gameWorld.getGravity().y / 2.2f;
+        moveSpeed = gameWorld.getGravity().y;
 
         //A comfortable dead-zone.
         if (moveSpeed > -0.5f && moveSpeed < 0.5f)
@@ -398,8 +402,8 @@ public class Blob extends Actor
         float angle = (float)Math.atan2(y - getBody().getPosition().y * gameWorld.ratio(),
                                         x - getBody().getPosition().x * gameWorld.ratio());
 
-        Vec2 velocity = new Vec2(-13.0f * FloatMath.cos(angle),
-                                 -13.0f * FloatMath.sin(angle));
+        Vec2 velocity = new Vec2(-15.0f * FloatMath.cos(angle),
+                                 -15.0f * FloatMath.sin(angle));
 
         getBody().setLinearVelocity(velocity);
 

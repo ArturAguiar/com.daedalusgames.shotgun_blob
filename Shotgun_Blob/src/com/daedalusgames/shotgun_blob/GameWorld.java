@@ -34,6 +34,9 @@ public class GameWorld implements SensorEventListener
     /** Track the Box2DThread FPS. */
     private float fps;
 
+    /** The contact listener. */
+    private ContactListener contactListener;
+
 
     //////////
     //ANDROID GRAPHICS
@@ -74,19 +77,38 @@ public class GameWorld implements SensorEventListener
     /**
      * The game world constructor.
      * @param gravity The gravity vector for the box2d world.
-     * @param doSleep Allow bodies to sleep in the box2d world.
+     * @param resources The application resources reference.
      * @param metrics The display metrics of the screen.
      */
-    public GameWorld(Vec2 gravity, boolean doSleep, DisplayMetrics metrics)
+    public GameWorld(Vec2 gravity, Resources resources, DisplayMetrics metrics)
     {
-        world = new World(gravity, doSleep);
+        this.resources = resources;
 
         displayMetrics = metrics;
 
-        ratio = 30.0f * displayMetrics.density;
+        ratio = 20.0f * displayMetrics.density;
+
+        contactListener = new ContactListener(this);
 
         actors = new HashSet<Actor>();
         toBeCreated = new HashSet<Actor>();
+
+        level = new Level(this);
+
+        //world = new World(gravity, doSleep);
+    }
+
+    /**
+     * The Box2d world setter.
+     * This is meant to be called by the level class whenever a new level is loaded.
+     * @param newWorld The new box2d world.
+     */
+    public void setWorld(World newWorld)
+    {
+        world = newWorld;
+
+        // Never forget to set the contact listener back.
+        world.setContactListener(contactListener);
     }
 
     /**
@@ -114,15 +136,6 @@ public class GameWorld implements SensorEventListener
     public DisplayMetrics getDisplayMetrics()
     {
         return displayMetrics;
-    }
-
-    /**
-     * The resources setter.
-     * @param newResources The new object to replace resources with.
-     */
-    public void setResources(Resources newResources)
-    {
-        resources = newResources;
     }
 
     /**
@@ -263,13 +276,18 @@ public class GameWorld implements SensorEventListener
     }
 
     /**
-     * Call the character specific logic for every actor.
+     * Call the specific logic for every actor and doodle.
      */
     public void runAI()
     {
         for (Actor actor : getActors())
         {
             actor.charLogic();
+        }
+
+        for (Doodle doodle : getLevel().getDoodles())
+        {
+            doodle.runLogic();
         }
     }
 
@@ -287,7 +305,6 @@ public class GameWorld implements SensorEventListener
     public void onPause()
     {
         sensorManager.unregisterListener(this);
-
     }
 
     /**
@@ -309,5 +326,4 @@ public class GameWorld implements SensorEventListener
         //TODO: let blob know that this happened?
         gravity = new Vec2(event.values[0], event.values[1]);
     }
-
 }

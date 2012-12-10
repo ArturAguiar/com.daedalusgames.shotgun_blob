@@ -32,9 +32,6 @@ public class DebugDraw
     /** Flag to tell the debug drawer to also draw joints. True by default. */
     public static boolean DRAW_JOINTS = true;
 
-    /** Flag to tell the debug drawer to also draw the FPS. True by default. */
-    public static boolean SHOW_FRAMERATE = true;
-
     /**
      * Method that draws all shapes in the given world in debug mode.
      * @param gameWorld The game world to be drawn.
@@ -205,20 +202,23 @@ public class DebugDraw
                 // This was only tested with distance joints so far.
             }
         }
+    }
 
+    /**
+     * Draws the framerate on the screen as text.
+     * @param gameWorld The game world to be drawn.
+     * @param canvas The screen canvas to draw to.
+     */
+    public static void drawFramerate(GameWorld gameWorld, Canvas canvas)
+    {
+        //The paint to output text.
+        Paint textPaint = new Paint();
+        textPaint.setStyle(Paint.Style.FILL);
+        textPaint.setColor(Color.RED);
+        textPaint.setTextSize(16);
+        textPaint.setAntiAlias(true);
+        textPaint.setTypeface(Typeface.MONOSPACE);
 
-        //Draw the framerate on the screen.
-        if (SHOW_FRAMERATE)
-        {
-            //The paint to output text.
-            Paint textPaint = new Paint();
-            textPaint.setStyle(Paint.Style.FILL);
-            textPaint.setColor(Color.RED);
-            textPaint.setTextSize(16);
-            textPaint.setAntiAlias(true);
-            textPaint.setTypeface(Typeface.MONOSPACE);
-
-            canvas.drawText(new DecimalFormat("#.#").format(gameWorld.getFps()) , 10.0f, 20.0f, textPaint);
-        }
+        canvas.drawText(new DecimalFormat("#.#").format(gameWorld.getFps()) , 10.0f, 20.0f, textPaint);
     }
 }

@@ -1,0 +1,95 @@
+
+{
+   "allowSleep" : true,
+   "autoClearForces" : true,
+   "body" : 
+   [
+      
+      {
+         "angle" : -0.2036856263875961,
+         "angularVelocity" : 0,
+         "awake" : true,
+         "fixture" : 
+         [
+            
+            {
+               "density" : 1,
+               "friction" : 0.2000000029802322,
+               "name" : "fixture1",
+               "polygon" : 
+               {
+                  "vertices" : 
+                  {
+                     "x" : [ 0.50, 0.50, -0.50, -0.50 ],
+                     "y" : [ -0.50, 0.50, 0.50, -0.50 ]
+                  }
+               }
+            }
+         ],
+         "linearVelocity" : 0,
+         "massData-I" : 0.1666666716337204,
+         "massData-mass" : 1,
+         "name" : "square",
+         "position" : 
+         {
+            "x" : 5.044681072235107,
+            "y" : 8.327967643737793
+         },
+         "type" : 2
+      },
+      
+      {
+         "angle" : 0,
+         "angularVelocity" : 0,
+         "awake" : true,
+         "fixture" : 
+         [
+            
+            {
+               "density" : 1,
+               "friction" : 0.2000000029802322,
+               "name" : "fixture0",
+               "polygon" : 
+               {
+                  "vertices" : 
+                  {
+                     "x" : 
+                     [
+                        14.57191562652588,
+                        14.57191562652588,
+                        -14.57191562652588,
+                        -14.57191562652588
+                     ],
+                     "y" : 
+                     [
+                        -0.1839717179536820,
+                        0.1839717179536820,
+                        0.1839717179536820,
+                        -0.1839717179536820
+                     ]
+                  }
+               }
+            }
+         ],
+         "linearVelocity" : 0,
+         "name" : "floor",
+         "position" : 
+         {
+            "x" : 5.038407802581787,
+            "y" : 0.06944179534912109
+         },
+         "type" : 0
+      }
+   ],
+   "continuousPhysics" : true,
+   "gravity" : 
+   {
+      "x" : 0,
+      "y" : -10.0
+   },
+   "positionIterations" : 3,
+   "stepsPerSecond" : 60.0,
+   "subStepping" : false,
+   "velocityIterations" : 8,
+   "warmStarting" : true
+}

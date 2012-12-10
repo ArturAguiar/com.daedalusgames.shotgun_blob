@@ -28,6 +28,10 @@ abstract public class Actor
     /** The initial position of the actor. */
     private Vec2 initialPosition;
 
+    /** The type of an actor. */
+    public enum Type {BLOB, ENEMY};
+    private Type type;
+
 
     /**
      * This creates the physical Box2D entities of an actor.
@@ -95,22 +99,21 @@ abstract public class Actor
 
     /**
      * The initial position setter.
+     * This is only considered when creating the actor's entity (physical body).
      * @param newInitialPosition The initial position of the actor's body.
      */
-    protected void setInitialPosition(Vec2 newInitialPosition)
+    public void setInitialPosition(Vec2 newInitialPosition)
     {
         initialPosition = newInitialPosition;
     }
 
-    /**
-     * Returns the dp (density-independent pixel) equivalent to amount of
-     * pixels given as parameter.
-     * TODO: I don't think this is working.
-     * @param px The amount of pixels to convert.
-     * @return The equivalent amount of dp's.
-     */
-    public float toDP(float px)
+    public Type getType()
     {
-        return (px / (gameWorld.getDisplayMetrics().densityDpi / 160.0f));
+        return type;
+    }
+
+    protected void setType(Type type)
+    {
+        this.type = type;
     }
 }

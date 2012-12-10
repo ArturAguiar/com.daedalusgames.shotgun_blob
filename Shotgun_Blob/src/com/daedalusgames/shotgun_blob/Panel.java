@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.Log;
 import org.jbox2d.common.Vec2;
 import android.view.MotionEvent;
 import android.graphics.Color;
@@ -38,8 +39,6 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 
         gameWorld = myGameWorld;
 
-        gameWorld.setResources(getResources());
-
         getHolder().addCallback(this);
 
         //Create the view (drawing) thread.
@@ -48,9 +47,9 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         //Create the box2D dedicated thread.
         box2dThread = new Box2DThread(gameWorld);
 
-        gameWorld.setBlob(new Blob(gameWorld));
+        //gameWorld.setBlob(new Blob(gameWorld));
 
-        gameWorld.setLevel(new Level(gameWorld));
+        //gameWorld.setLevel(new Level(gameWorld));
 
         viewportTranslation = new Vec2(0.0f, 0.0f);
     }
@@ -66,9 +65,14 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         // Color to clear the screen with.
         canvas.drawColor(Color.WHITE);
 
+        canvas.save();
+
+        // R.U.B.E. uses the positive y axis up orientation. It is just easier to flip everything.
+        // But remember that the origin is now at the bottom left!
+        canvas.scale(1.0f, -1.0f, 0.0f, gameWorld.getDisplayMetrics().heightPixels / 2.0f);
+
         // Translate the viewport according to the player's position (camera pan).
         this.cameraPan(canvas);
-
 
         // Draw all the actors inside the set.
         for (Actor actor : gameWorld.getActors())
@@ -80,7 +84,20 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         }
 
         // Debug-draw the box2d world.
-        DebugDraw.draw(gameWorld, canvas);
+        if (gameWorld != null && gameWorld.getWorld() != null)
+        {
+            DebugDraw.draw(gameWorld, canvas);
+        }
+        else
+        {
+            Log.v("Panel", "World was null!");
+        }
+
+        canvas.restore();
+
+        DebugDraw.drawFramerate(gameWorld, canvas);
+
+
     }
 
 
@@ -131,7 +148,7 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         //new RandomObject(gameWorld, event.getX(), event.getY());
 
         gameWorld.getBlob().shoot( event.getX() - viewportTranslation.x,
-                                   event.getY() - viewportTranslation.y );
+                                   gameWorld.getDisplayMetrics().heightPixels - event.getY() - viewportTranslation.y );
 
         return super.onTouchEvent(event);
     }
@@ -155,13 +172,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
             // Vertical pan.
             float dy = gameWorld.getBlob().getBody().getPosition().y * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels / 2.0f;
 
-            if (dy < gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio())
+            if (dy < gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio())
             {
-                dy = gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio();
+                dy = gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio();
             }
-            else if (dy > gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels)
+            else if (dy > gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels)
             {
-                dy = gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels;
+                dy = gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels;
             }
 
             canvas.translate(-dx, -dy);
