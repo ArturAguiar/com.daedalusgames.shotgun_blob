@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.Log;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.Fixture;
 import org.jbox2d.callbacks.ContactImpulse;
@@ -77,6 +78,20 @@ public class ContactListener implements org.jbox2d.callbacks.ContactListener
             if (doodle.getSensor() == sensorFixture)
             {
                 doodle.collidedWith(otherFixture, beginContact);
+                return; // If it was already found, I'm done.
+            }
+        }
+
+
+        for (Event event : gameWorld.getLevel().getEvents())
+        {
+            Log.v("ContactListener", "Checking for event sensors.");
+
+            if (event.getSensor() == sensorFixture)
+            {
+                event.sensorActivated(otherFixture, beginContact);
+                Log.v("ContactListener", "Event triggered.");
+                return; // If it was already found, I'm done.
             }
         }
     }

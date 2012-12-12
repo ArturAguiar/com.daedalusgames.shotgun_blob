@@ -60,44 +60,48 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
      * This gives me more control over the drawing phase.
      * @param canvas The canvas to draw on.
      */
-    public synchronized void doDraw(Canvas canvas)
+    public void doDraw(Canvas canvas)
     {
         // Color to clear the screen with.
         canvas.drawColor(Color.WHITE);
 
-        canvas.save();
+        //canvas.save();
 
         // R.U.B.E. uses the positive y axis up orientation. It is just easier to flip everything.
         // But remember that the origin is now at the bottom left!
-        canvas.scale(1.0f, -1.0f, 0.0f, gameWorld.getDisplayMetrics().heightPixels / 2.0f);
+        //canvas.scale(1.0f, -1.0f, 0.0f, gameWorld.getDisplayMetrics().heightPixels / 2.0f);
 
         // Translate the viewport according to the player's position (camera pan).
         this.cameraPan(canvas);
 
         // Draw all the actors inside the set.
-        for (Actor actor : gameWorld.getActors())
+        synchronized (gameWorld)
         {
-            if (actor != null)
+            gameWorld.drawActors(canvas);
+
+            // Debug-draw the box2d world.
+            if (gameWorld != null && gameWorld.getWorld() != null)
             {
-                actor.drawMe(canvas);
+                //DebugDraw.draw(gameWorld, canvas);
             }
+            else
+            {
+                Log.v("Panel", "World was null!");
+            }
+
+
+            if (gameWorld.getLevel() != null)
+                gameWorld.getLevel().drawMe(canvas);
         }
 
-        // Debug-draw the box2d world.
-        if (gameWorld != null && gameWorld.getWorld() != null)
+        //canvas.restore();
+
+        synchronized (gameWorld)
         {
-            DebugDraw.draw(gameWorld, canvas);
-        }
-        else
-        {
-            Log.v("Panel", "World was null!");
+            gameWorld.drawSpeechBubbles(canvas);
         }
 
-        canvas.restore();
-
-        DebugDraw.drawFramerate(gameWorld, canvas);
-
-
+        //DebugDraw.drawFramerate(gameWorld, canvas);
     }
 
 
@@ -148,7 +152,7 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         //new RandomObject(gameWorld, event.getX(), event.getY());
 
         gameWorld.getBlob().shoot( event.getX() - viewportTranslation.x,
-                                   gameWorld.getDisplayMetrics().heightPixels - event.getY() - viewportTranslation.y );
+                                   event.getY() - viewportTranslation.y );
 
         return super.onTouchEvent(event);
     }
@@ -172,13 +176,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
             // Vertical pan.
             float dy = gameWorld.getBlob().getBody().getPosition().y * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels / 2.0f;
 
-            if (dy < gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio())
+            if (dy < gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio())
             {
-                dy = gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio();
+                dy = gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio();
             }
-            else if (dy > gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels)
+            else if (dy > gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels)
             {
-                dy = gameWorld.getLevel().getBoundingBox().top * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels;
+                dy = gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels;
             }
 
             canvas.translate(-dx, -dy);

@@ -1,5 +1,10 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap;
+import java.util.HashSet;
+import android.util.Log;
+import java.util.ArrayList;
 import org.jbox2d.common.Vec2;
 import android.graphics.Canvas;
 import org.jbox2d.dynamics.BodyDef;
@@ -29,8 +34,12 @@ abstract public class Actor
     private Vec2 initialPosition;
 
     /** The type of an actor. */
-    public enum Type {BLOB, ENEMY};
-    private Type type;
+    public enum ActorType {BLOB, ENEMY};
+    private ActorType type;
+
+    private Event actionEvent;
+    private Action actionToPerform;
+
 
 
     /**
@@ -49,6 +58,16 @@ abstract public class Actor
      * This is run after every box2d step.
      */
     abstract public void charLogic();
+
+    /**
+     *
+     */
+    public void performAction(Event event, Action action)
+    {
+        this.actionEvent = event;
+        this.actionToPerform = action;
+        Log.v("Actor", "Perform " + action.getType().toString() + ".");
+    }
 
     /**
      * Sets the body of the actor.
@@ -107,13 +126,33 @@ abstract public class Actor
         initialPosition = newInitialPosition;
     }
 
-    public Type getType()
+    public ActorType getType()
     {
         return type;
     }
 
-    protected void setType(Type type)
+    protected void setType(ActorType type)
     {
         this.type = type;
+    }
+
+    public Event getActionEvent()
+    {
+        return actionEvent;
+    }
+
+    public void setActionEvent(Event actionEvent)
+    {
+        this.actionEvent = actionEvent;
+    }
+
+    public Action getActionToPerform()
+    {
+        return actionToPerform;
+    }
+
+    public void setActionToPerform(Action actionToPerform)
+    {
+        this.actionToPerform = actionToPerform;
     }
 }

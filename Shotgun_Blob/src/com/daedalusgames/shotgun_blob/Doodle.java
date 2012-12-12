@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.graphics.Canvas;
 import org.jbox2d.dynamics.Fixture;
 import org.jbox2d.dynamics.Body;
 
@@ -29,6 +30,8 @@ public abstract class Doodle
      * Method called at every frame.
      */
     abstract public void runLogic();
+
+    abstract public void drawMe(Canvas canvas);
 
     /**
      * Sets the body of the doodle.

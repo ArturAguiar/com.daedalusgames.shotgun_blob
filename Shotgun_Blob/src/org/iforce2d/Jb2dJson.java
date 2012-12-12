@@ -351,6 +351,7 @@ public class Jb2dJson {
 			PolygonShape poly = (PolygonShape) shape;
 			JSONObject shapeValue = new JSONObject();
 			int vertexCount = poly.getVertexCount();
+
 			for (int i = 0; i < vertexCount; ++i)
 				vecToJson("vertices", poly.m_vertices[i], shapeValue, i);
 			fixtureValue.put("polygon", shapeValue);

@@ -1,5 +1,11 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.Log;
+import android.graphics.RectF;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Canvas;
+import com.daedalusgames.shotgun_blob.Actor.ActorType;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.collision.AABB;
 import org.jbox2d.dynamics.Fixture;
@@ -18,6 +24,8 @@ import org.jbox2d.dynamics.Body;
  */
 public class Door extends Doodle
 {
+    private GameWorld gameWorld;
+
     private boolean open;
 
     private int closeTimer;
@@ -40,8 +48,10 @@ public class Door extends Doodle
      * @param doorSensor The sensor of this door.
      * @param id The id of this door (unique per level).
      */
-    public Door(Body doorBody, Fixture doorSensor, int id)
+    public Door(Body doorBody, Fixture doorSensor, int id, GameWorld gameWorld)
     {
+        this.gameWorld = gameWorld;
+
         this.setBody(doorBody);
 
         this.setSensor(doorSensor);
@@ -55,7 +65,11 @@ public class Door extends Doodle
         closedPosition = this.getBody().getPosition().y;
 
         AABB boundingBox = this.getBody().getFixtureList().getAABB();
-        openPosition = boundingBox.upperBound.y - boundingBox.lowerBound.y + closedPosition;
+        openPosition = closedPosition - (boundingBox.upperBound.y - boundingBox.lowerBound.y);
+
+        Log.v("Door", "Closed position = " + closedPosition);
+        Log.v("Door", "Open position = " + openPosition);
+        Log.v("Door", "Height = " + (boundingBox.upperBound.y - boundingBox.lowerBound.y));
 
         speed = 5.0f;
 
@@ -72,7 +86,7 @@ public class Door extends Doodle
         Actor actor = (Actor)otherFixture.getUserData();
 
         // If it was blob, open the door.
-        if (actor.getType().equals(Actor.Type.BLOB))
+        if (actor.getType().equals(ActorType.BLOB))
         {
             if (beginContact)
             {
@@ -111,18 +125,7 @@ public class Door extends Doodle
 
         if (open)
         {
-            if (this.getBody().getPosition().y < openPosition)
-            {
-                this.getBody().setLinearVelocity(new Vec2(0.0f, speed));
-            }
-            else
-            {
-                this.getBody().setLinearVelocity(new Vec2(0.0f, 0.0f));
-            }
-        }
-        else
-        {
-            if (this.getBody().getPosition().y > closedPosition)
+            if (this.getBody().getPosition().y > openPosition)
             {
                 this.getBody().setLinearVelocity(new Vec2(0.0f, -speed));
             }
@@ -131,6 +134,29 @@ public class Door extends Doodle
                 this.getBody().setLinearVelocity(new Vec2(0.0f, 0.0f));
             }
         }
+        else
+        {
+            if (this.getBody().getPosition().y < closedPosition)
+            {
+                this.getBody().setLinearVelocity(new Vec2(0.0f, speed));
+            }
+            else
+            {
+                this.getBody().setLinearVelocity(new Vec2(0.0f, 0.0f));
+            }
+        }
+    }
+
+    @Override
+    public void drawMe(Canvas canvas)
+    {
+        Paint paint = new Paint();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.DKGRAY);
+
+        AABB box = this.getBody().getFixtureList().getAABB();
+        canvas.drawRect(new RectF(box.lowerBound.x * gameWorld.ratio(), box.lowerBound.y * gameWorld.ratio(),
+            box.upperBound.x * gameWorld.ratio(), box.upperBound.y * gameWorld.ratio()), paint);
     }
 
     /**

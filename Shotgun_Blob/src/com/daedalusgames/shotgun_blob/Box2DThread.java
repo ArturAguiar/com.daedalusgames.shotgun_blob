@@ -60,9 +60,11 @@ public class Box2DThread extends Thread
                 //Create the actors' physical entities safely outside of the time-step.
                 gameWorld.createAllEntities();
 
-                //Run the all of the game's "AI".
+                //Run all of the game's "AI".
                 gameWorld.runAI();
 
+                //Call the method to delete box2d bodies safely outside of the step.
+                gameWorld.deleteBodies();
             }
 
             try

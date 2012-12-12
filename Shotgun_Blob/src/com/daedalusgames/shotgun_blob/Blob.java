@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.util.Log;
 import org.jbox2d.dynamics.joints.RevoluteJointDef;
 import org.jbox2d.collision.shapes.PolygonShape;
 import org.jbox2d.dynamics.joints.PrismaticJointDef;
@@ -51,6 +52,9 @@ public class Blob extends Actor
     /** The shotgun image. */
     private Bitmap shotgunSprite;
 
+    /** The eyes sprite. */
+    private Bitmap eyeSprite;
+
     /** The image transformation matrix. */
     private Matrix matrix;
 
@@ -77,7 +81,7 @@ public class Blob extends Actor
         //Set the value of the gameWorld reference inherited from Actor.
         gameWorld = myGameWorld;
 
-        setType(Actor.Type.BLOB);
+        setType(ActorType.BLOB);
 
         health = 100;
 
@@ -90,8 +94,11 @@ public class Blob extends Actor
 
         matrix = new Matrix();
 
-        shotgunSprite = BitmapFactory.decodeResource(myGameWorld.getResources(), R.drawable.shotgun_sheet);
 
+        shotgunSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.shotgun_sheet);
+
+        eyeSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.eyes);
+        eyeSprite = Bitmap.createScaledBitmap(eyeSprite, 40, 26, false);
 
 
         reloadTimer = 0;
@@ -289,18 +296,20 @@ public class Blob extends Actor
 
         if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
         {
-          //flip the sprites if going left
-            matrix.setScale(-1.0f, -1.0f);
+            //flip the sprites if going left
+            matrix.setScale(-1.0f, 1.0f);
         }
         else
         {
-            matrix.setScale(1.0f, -1.0f);
+            matrix.setScale(1.0f, 1.0f);
         }
 
         // Move the sprite to the body's position.
         matrix.postTranslate(getBody().getPosition().x * gameWorld.ratio(),
-                             getBody().getPosition().y * gameWorld.ratio() + shotgunSprite.getHeight() / 2.0f);
+                             getBody().getPosition().y * gameWorld.ratio() - shotgunSprite.getHeight() / 2.0f);
 
+
+        canvas.drawBitmap(eyeSprite, matrix, bitmapPaint);
 
 
         if (shotAt != 0.0f)
@@ -363,6 +372,19 @@ public class Blob extends Actor
             moveSpeed = 0;
         }
 
+        //Execute an action if it is set.
+        if (this.getActionEvent() != null && this.getActionToPerform() != null)
+        {
+            this.executeAction(this.getActionToPerform());
+
+            if(this.getActionToPerform() != null &&
+               this.getActionToPerform().restrains())
+            {
+                moveSpeed = 0;
+            }
+        }
+
+
         //Cap the movement speed at maxSpeed.
         else if (moveSpeed > maxSpeed)
         {
@@ -393,8 +415,8 @@ public class Blob extends Actor
      */
     public void shoot(float x, float y)
     {
-        // Only shoot if completely reloaded.
-        if (reloadTimer > 0)
+        // Only shoot if completely reloaded and he is not making a restraining action.
+        if (reloadTimer > 0 || (this.getActionEvent() != null && this.getActionToPerform() != null && this.getActionToPerform().restrains()))
         {
             return;
         }
@@ -416,47 +438,75 @@ public class Blob extends Actor
         reloadTimer = reloadTime;
     }
 
-    /**
-     * change the coordinates of the points so that the curve drawn will be smooth.
-     */
-    /*
-    private void smoothCurve(CircularBuffer points)
+    private void executeAction(Action action)
     {
-        for (int i = 0; i < adjCircles.length; i++)
+        switch(action.getType())
         {
-            points.enqueue(new Vec2(adjCircles[i].getPosition().x * gameWorld.ratio(),
-                                    adjCircles[i].getPosition().y * gameWorld.ratio()));
+            case WAIT:
+
+                // Try to "brake". Reduce any horizontal velocity.
+                if (this.getBody().getLinearVelocity().x > 0.5f)
+                {
+                    this.getBody().applyLinearImpulse(new Vec2(-1.0f, 0.0f), this.getBody().getPosition());
+                }
+                else if (this.getBody().getLinearVelocity().x < -0.5f)
+                {
+                    this.getBody().applyLinearImpulse(new Vec2(1.0f, 0.0f), this.getBody().getPosition());
+                }
+
+                this.getActionToPerform().setAmount(this.getActionToPerform().getAmount() - 1);
+
+                if (this.getActionToPerform().getAmount() <= 0)
+                {
+                    this.setActionToPerform(null);
+                    this.getActionEvent().actionFinished();
+                }
+                break;
+
+            case MOVE:
+
+                if (this.getActionToPerform().getAmount() > 0.0f)
+                {
+                    this.getBody().setLinearVelocity(new Vec2(maxSpeed, this.getBody().getLinearVelocity().y));
+
+                }
+                else
+                {
+                    this.getBody().setLinearVelocity(new Vec2(-maxSpeed, this.getBody().getLinearVelocity().y));
+                }
+
+                int amount = this.getActionToPerform().getAmount();
+                this.getActionToPerform().setAmount(amount - 1 * (amount / Math.abs(amount)));
+
+                if (this.getActionToPerform().getAmount() == 0)
+                {
+                    this.setActionToPerform(null);
+                    this.getActionEvent().actionFinished();
+                }
+                break;
+
+            case TALK:
+
+                if (!this.gameWorld.getSpeechBubbles().contains(this.getActionToPerform().getSpeechBubble()))
+                {
+                    this.gameWorld.getSpeechBubbles().add(this.getActionToPerform().getSpeechBubble());
+                }
+
+                this.getActionToPerform().setAmount(this.getActionToPerform().getAmount() - 1);
+
+                if (this.getActionToPerform().getAmount() <= 0)
+                {
+                    this.gameWorld.getSpeechBubbles().remove(this.getActionToPerform().getSpeechBubble());
+                    this.setActionToPerform(null);
+                    this.getActionEvent().actionFinished();
+                }
+
+                break;
         }
 
-        //Go through all adjacent circles applying some awesome math to create
-        //a smooth bezier curve around them.
-        //Thanks Dr. Tony Allevato for this!
-        //The number of circles has to be a multiple of 3 for this to work!
-        for (int i = 0; i + 3 < points.size(); i += 3)
-        {
-            Vec2 q0 = new Vec2(points.dequeue());
-            Vec2 q1 = new Vec2(points.dequeue());
-            Vec2 q2 = new Vec2(points.dequeue());
-            Vec2 q3 = new Vec2(points.peek());
 
-            Vec2 p1 = new Vec2(q1);
-            Vec2 p2 = new Vec2(q2);
-
-            // P1 = (1/6)(-5 Q0 + 18 Q1 - 9 Q2 + 2 Q3)
-            p1.x = (1.0f/6.0f)*( -5.0f*q0.x + 18.0f*q1.x - 9.0f*q2.x + 2.0f*q3.x );
-            p1.y = (1.0f/6.0f)*( -5.0f*q0.y + 18.0f*q1.y - 9.0f*q2.y + 2.0f*q3.y );
-
-            // P2 = (1/6)(2 Q0 - 9 Q1 + 18 Q2 - 5 Q3)
-            p2.x = (1.0f/6.0f)*( 2.0f*q0.x - 9.0f*q1.x + 18.0f*q2.x - 5.0f*q3.x );
-            p2.y = (1.0f/6.0f)*( 2.0f*q0.y - 9.0f*q1.y + 18.0f*q2.y - 5.0f*q3.y );
-
-            points.enqueue(q0);
-            points.enqueue(p1);
-            points.enqueue(p2);
-        }
 
     }
-    */
 
 
     /**

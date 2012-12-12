@@ -1,5 +1,12 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Matrix;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap;
+import com.daedalusgames.shotgun_blob.Action.ActionType;
+import java.util.ArrayList;
 import java.util.HashSet;
 import org.jbox2d.common.Vec2;
 import java.io.IOException;
@@ -23,9 +30,17 @@ public class Level
 {
     private GameWorld gameWorld;
 
+    private String levelName;
+
     private RectF boundingBox;
 
     private HashSet<Doodle> levelDoodles;
+
+    private HashSet<Event> levelEvents;
+
+    private Bitmap levelImage;
+
+    private Paint bitmapPaint;
 
     /**
      * Level constructor.
@@ -37,8 +52,18 @@ public class Level
 
         levelDoodles = new HashSet<Doodle>();
 
+        levelEvents = new HashSet<Event>();
+
         //Load first level.
-        this.loadLevel("second_test");
+        this.loadLevel("intro");
+
+        levelImage = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.intro_level);
+        levelImage = Bitmap.createScaledBitmap(levelImage,
+            (int)(this.boundingBox.width() * gameWorld.ratio()),
+            (int)(this.boundingBox.height() * gameWorld.ratio()),
+            false);
+
+        bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     }
 
     /**
@@ -49,6 +74,8 @@ public class Level
      */
     public boolean loadLevel(String levelName)
     {
+        this.levelName = levelName;
+
         Jb2dJson json = new Jb2dJson();
         StringBuilder errorMsg = new StringBuilder();
         World newWorld = json.readFromString(assetToString(levelName + ".json"), errorMsg);
@@ -85,6 +112,11 @@ public class Level
             }
             gameWorld.getWorld().destroyBody(startPoint);
         }
+        else
+        {
+            // TODO: I want to throw an exception here, but I'm not sure this is the right one.
+            throw new IllegalStateException("A starting point was not set in the level.");
+        }
 
 
         // Check for doors.
@@ -96,15 +128,67 @@ public class Level
             Fixture sensor = json.getFixtureByName("doodle_door_sensor_" + id);
 
             // Add the door to the doodles set for the level.
-            levelDoodles.add(new Door(doors[i], sensor, id));
+            levelDoodles.add(new Door(doors[i], sensor, id, gameWorld));
         }
         Log.v("Level", "Found " + doors.length + " doors.");
+
+
+        // Check for event sensors.
+        Body[] eventSensors = json.getBodiesByName("doodle_event_sensor");
+        for (int i = 0; i < eventSensors.length; i++)
+        {
+            Fixture sensor = eventSensors[i].getFixtureList();
+            int id = Integer.parseInt(json.getFixtureName(sensor));
+
+
+            // Add the door to the doodles set for the level.
+            this.addEvent(id, sensor);
+        }
 
 
         // Calculate the bounding box.
         boundingBox = this.calculateBoundingBox();
 
         return true;
+    }
+
+    private void addEvent(int id, Fixture sensor)
+    {
+        ArrayList<Action> actions = new ArrayList<Action>();
+        boolean eventNotFound = false;
+
+        if (this.levelName.equals("intro"))
+        {
+            switch(id)
+            {
+                case 0:
+                    actions.add(new Action(ActionType.WAIT, gameWorld.getBlob(), 30));
+                    actions.add(new Action(gameWorld.getBlob(), "What the hell is this place?", 100, true, gameWorld));
+                    actions.add(new Action(ActionType.MOVE, gameWorld.getBlob(), -80));
+                    actions.add(new Action(ActionType.WAIT, gameWorld.getBlob(), 30));
+                    actions.add(new Action(gameWorld.getBlob(), "Wherever it is that I came from,", 100, true, gameWorld));
+                    actions.add(new Action(gameWorld.getBlob(), "I can't go back.", 70, true, gameWorld));
+
+                    break;
+
+                default:
+                    eventNotFound = true;
+                    break;
+            }
+
+
+        }
+
+        if (!eventNotFound)
+        {
+            levelEvents.add(new Event(gameWorld, sensor, actions, true));
+        }
+        else
+        {
+            // TODO: I want to throw an exception here, but I'm not sure this is the right one.
+            throw new IllegalStateException("The event of id " + id + " was not found in the level " + this.levelName + ".");
+        }
+
     }
 
     /**
@@ -125,8 +209,8 @@ public class Level
                 {
                     float left = fixture.getAABB().lowerBound.x;
                     float right = fixture.getAABB().upperBound.x;
-                    float top = fixture.getAABB().upperBound.y;
-                    float bottom = fixture.getAABB().lowerBound.y;
+                    float bottom = fixture.getAABB().upperBound.y;
+                    float top = fixture.getAABB().lowerBound.y;
 
                     if ( box == null )
                     {
@@ -141,15 +225,18 @@ public class Level
                             box.right = right;
 
 
-                        if ( top > box.top )
+                        if ( top < box.top )
                             box.top = top;
 
-                        if ( bottom < box.bottom )
+                        if ( bottom > box.bottom )
                             box.bottom = bottom;
                     }
                 }
             }
         }
+
+        Log.v("Level", "Left-top = (" + box.left + ", " + box.top + ")");
+        Log.v("Level", "Right-bottom = (" + box.right + ", " + box.bottom + ")");
 
         return box;
     }
@@ -165,11 +252,20 @@ public class Level
 
     /**
      * Returns the hash set of doodles.
-     * @return The doodles.
+     * @return This level's doodles.
      */
     public HashSet<Doodle> getDoodles()
     {
         return levelDoodles;
+    }
+
+    /**
+     * Returns the hash set of events.
+     * @return This levels events.
+     */
+    public HashSet<Event> getEvents()
+    {
+        return levelEvents;
     }
 
 
@@ -202,6 +298,19 @@ public class Level
            // Should never happen!
            throw new RuntimeException(e);
        }
+   }
+
+   public void drawMe(Canvas canvas)
+   {
+       for (Doodle doodle : this.getDoodles())
+       {
+           doodle.drawMe(canvas);
+       }
+
+       canvas.drawBitmap(levelImage,
+           this.boundingBox.left * gameWorld.ratio(),
+           this.boundingBox.top * gameWorld.ratio(),
+           bitmapPaint);
    }
 
 }

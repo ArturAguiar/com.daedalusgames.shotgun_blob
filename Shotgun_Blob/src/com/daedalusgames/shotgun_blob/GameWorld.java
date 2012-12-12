@@ -1,5 +1,8 @@
 package com.daedalusgames.shotgun_blob;
 
+import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import org.jbox2d.dynamics.Body;
 import android.util.Log;
 import android.content.res.Resources;
 import java.util.HashSet;
@@ -37,6 +40,9 @@ public class GameWorld implements SensorEventListener
     /** The contact listener. */
     private ContactListener contactListener;
 
+    /** Bodies that need to be removed safely. */
+    private HashSet<Body> toBeDeleted;
+
 
     //////////
     //ANDROID GRAPHICS
@@ -73,6 +79,9 @@ public class GameWorld implements SensorEventListener
     /** The current level. */
     private Level level;
 
+    /** Speech bubbles currently in display. */
+    private HashSet<SpeechBubble> speechBubbles;
+
 
     /**
      * The game world constructor.
@@ -80,13 +89,15 @@ public class GameWorld implements SensorEventListener
      * @param resources The application resources reference.
      * @param metrics The display metrics of the screen.
      */
-    public GameWorld(Vec2 gravity, Resources resources, DisplayMetrics metrics)
+    public GameWorld(Resources resources, DisplayMetrics metrics)
     {
         this.resources = resources;
 
         displayMetrics = metrics;
 
         ratio = 20.0f * displayMetrics.density;
+
+        toBeDeleted = new HashSet<Body>();
 
         contactListener = new ContactListener(this);
 
@@ -95,7 +106,7 @@ public class GameWorld implements SensorEventListener
 
         level = new Level(this);
 
-        //world = new World(gravity, doSleep);
+        speechBubbles = new HashSet<SpeechBubble>();
     }
 
     /**
@@ -276,6 +287,29 @@ public class GameWorld implements SensorEventListener
     }
 
     /**
+     * Deletes all bodies that are queued to be deleted in the toBeDeleted set.
+     * This is meant to be called safely outside of the world step.     *
+     */
+    public void deleteBodies()
+    {
+        for (Body body : this.getToBeDeleted())
+        {
+            // TODO: Do I need to delete anything else related to these bodies?
+            this.getWorld().destroyBody(body);
+        }
+    }
+
+    /**
+     * Returns the hash set of bodies that will be deleted as soon as it is safe
+     * to do so.
+     * @return Bodies to be deleted.
+     */
+    public HashSet<Body> getToBeDeleted()
+    {
+        return toBeDeleted;
+    }
+
+    /**
      * Call the specific logic for every actor and doodle.
      */
     public void runAI()
@@ -288,6 +322,33 @@ public class GameWorld implements SensorEventListener
         for (Doodle doodle : getLevel().getDoodles())
         {
             doodle.runLogic();
+        }
+    }
+
+    /**
+     * Draws all the actors in the actors set.
+     * @param canvas The canvas to draw on.
+     */
+    public void drawActors(Canvas canvas)
+    {
+        for (Actor actor : this.getActors())
+        {
+            if (actor != null)
+            {
+                actor.drawMe(canvas);
+            }
+        }
+    }
+
+    /**
+     * Draws any all speech bubbles in the current set.
+     * @param canvas The canvas to draw on.
+     */
+    public void drawSpeechBubbles(Canvas canvas)
+    {
+        for (SpeechBubble bubble : this.getSpeechBubbles())
+        {
+            bubble.drawMe(canvas);
         }
     }
 
@@ -323,7 +384,15 @@ public class GameWorld implements SensorEventListener
      */
     public void onSensorChanged(SensorEvent event)
     {
-        //TODO: let blob know that this happened?
         gravity = new Vec2(event.values[0], event.values[1]);
+    }
+
+    /**
+     * Returns the set of all speech bubbles being currently displayed.
+     * @return The hash set of all speech bubbles to draw.
+     */
+    public HashSet<SpeechBubble> getSpeechBubbles()
+    {
+        return speechBubbles;
     }
 }
