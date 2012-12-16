@@ -2,11 +2,8 @@ package com.daedalusgames.shotgun_blob;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Matrix;
 import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
-import com.daedalusgames.shotgun_blob.Action.ActionType;
-import java.util.ArrayList;
 import java.util.HashSet;
 import org.jbox2d.common.Vec2;
 import java.io.IOException;
@@ -36,7 +33,9 @@ public class Level
 
     private HashSet<Doodle> levelDoodles;
 
-    private HashSet<Event> levelEvents;
+    //private HashSet<Event> levelEvents;
+
+    private HashSet<Action> levelActions;
 
     private Bitmap levelImage;
 
@@ -52,7 +51,9 @@ public class Level
 
         levelDoodles = new HashSet<Doodle>();
 
-        levelEvents = new HashSet<Event>();
+        //levelEvents = new HashSet<Event>();
+
+        levelActions = new HashSet<Action>();
 
         //Load first level.
         this.loadLevel("intro");
@@ -69,12 +70,12 @@ public class Level
     /**
      * Loads a given level by resetting the box2d world.
      * Detects named doodles and acts accordingly.
-     * @param levelName The name of the new level.
+     * @param myLevelName The name of the new level.
      * @return True if successful or false otherwise.
      */
-    public boolean loadLevel(String levelName)
+    public boolean loadLevel(String myLevelName)
     {
-        this.levelName = levelName;
+        this.levelName = myLevelName;
 
         Jb2dJson json = new Jb2dJson();
         StringBuilder errorMsg = new StringBuilder();
@@ -128,7 +129,7 @@ public class Level
             Fixture sensor = json.getFixtureByName("doodle_door_sensor_" + id);
 
             // Add the door to the doodles set for the level.
-            levelDoodles.add(new Door(doors[i], sensor, id, gameWorld));
+            levelDoodles.add(new Door(doors[i], sensor, gameWorld));
         }
         Log.v("Level", "Found " + doors.length + " doors.");
 
@@ -142,7 +143,7 @@ public class Level
 
 
             // Add the door to the doodles set for the level.
-            this.addEvent(id, sensor);
+            this.addAction(id, sensor);
         }
 
 
@@ -152,9 +153,9 @@ public class Level
         return true;
     }
 
-    private void addEvent(int id, Fixture sensor)
+    private void addAction(int id, Fixture sensor)
     {
-        ArrayList<Action> actions = new ArrayList<Action>();
+        Action actionHead = null;
         boolean eventNotFound = false;
 
         if (this.levelName.equals("intro"))
@@ -162,12 +163,31 @@ public class Level
             switch(id)
             {
                 case 0:
-                    actions.add(new Action(ActionType.WAIT, gameWorld.getBlob(), 30));
-                    actions.add(new Action(gameWorld.getBlob(), "What the hell is this place?", 100, true, gameWorld));
-                    actions.add(new Action(ActionType.MOVE, gameWorld.getBlob(), -80));
-                    actions.add(new Action(ActionType.WAIT, gameWorld.getBlob(), 30));
-                    actions.add(new Action(gameWorld.getBlob(), "Wherever it is that I came from,", 100, true, gameWorld));
-                    actions.add(new Action(gameWorld.getBlob(), "I can't go back.", 70, true, gameWorld));
+                    actionHead = new Action(gameWorld.getBlob(), gameWorld, false);
+
+                    actionHead.waitFor(30)
+                    .restrain().talk("What the hell is this place?", 100)
+                    .move(-gameWorld.getBlob().getMaxSpeed(), 80)
+                    .waitFor(30)
+                    .restrain().talk("Wherever it is that I came from,", 100)
+                    .talk("I can't go back.", 70);
+
+                    actionHead.addTrigger(sensor);
+
+                    /*
+                    actionHead.addTrigger(
+                        new Action.ConditionalTrigger() {
+                            @Override
+                            public boolean evaluateCondition()
+                            {
+                                if (gameWorld.getBlob().getReloadTimer() > 0)
+                                    return true;
+
+                                return false;
+                            }
+                        }
+                    );
+                    */
 
                     break;
 
@@ -181,7 +201,7 @@ public class Level
 
         if (!eventNotFound)
         {
-            levelEvents.add(new Event(gameWorld, sensor, actions, true));
+            levelActions.add(actionHead);
         }
         else
         {
@@ -263,9 +283,16 @@ public class Level
      * Returns the hash set of events.
      * @return This levels events.
      */
+    /*
     public HashSet<Event> getEvents()
     {
         return levelEvents;
+    }
+    */
+
+    public HashSet<Action> getActions()
+    {
+        return levelActions;
     }
 
 
@@ -300,6 +327,11 @@ public class Level
        }
    }
 
+   /**
+    * Draws the level on the provided canvas.
+    * The image of the level is positioned on its top-left corner.
+    * @param canvas The canvas to draw on.
+    */
    public void drawMe(Canvas canvas)
    {
        for (Doodle doodle : this.getDoodles())

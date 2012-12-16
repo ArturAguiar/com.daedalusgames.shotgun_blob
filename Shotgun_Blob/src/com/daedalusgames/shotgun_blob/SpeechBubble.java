@@ -1,7 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
 import android.util.FloatMath;
-import android.util.Log;
 import java.util.ArrayList;
 import org.jbox2d.common.Vec2;
 import android.graphics.Color;
@@ -11,6 +10,13 @@ import android.graphics.Canvas;
 import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
 
+/**
+ *  A speech bubble that contains the specified text and pops up above the
+ *  actor.
+ *
+ *  @author Artur
+ *  @version Dec 15, 2012
+ */
 public class SpeechBubble
 {
     private GameWorld gameWorld;
@@ -24,6 +30,12 @@ public class SpeechBubble
 
     private ArrayList<String> text;
 
+    /**
+     * Initializes all fields.
+     * @param gameWorld The gameWorld reference.
+     * @param talker The actor that is talking.
+     * @param speech The text to be displayed inside this bubble.
+     */
     public SpeechBubble(GameWorld gameWorld, Actor talker, String speech)
     {
         this.gameWorld = gameWorld;
@@ -42,8 +54,6 @@ public class SpeechBubble
         this.talker = talker;
 
         this.text = new ArrayList<String>();
-
-        char[] textChars = speech.toCharArray();
 
         // Split into ~20 character lines, but only split on whitespace.
         int amountOfChars = 20;
@@ -81,12 +91,15 @@ public class SpeechBubble
 
     }
 
+    /**
+     * This method draws this speech bubble on the provided canvas.
+     * @param canvas The canvas to draw on.
+     */
     public void drawMe(Canvas canvas)
     {
-        // TODO: wth is going on here? There is something weird happening with the position of the speech bubble due to the flipped canvas.
         Vec2 position = new Vec2(
-            talker.getBody().getPosition().x * gameWorld.ratio() + 20.0f,
-            talker.getBody().getPosition().y * gameWorld.ratio() - this.bubbleBG.getHeight() - 20.0f);
+            talker.getBody().getPosition().x * gameWorld.ratio() + 30.0f,
+            talker.getBody().getPosition().y * gameWorld.ratio() - this.bubbleBG.getHeight() - 30.0f);
 
         canvas.drawBitmap(bubbleBG,
                           position.x,

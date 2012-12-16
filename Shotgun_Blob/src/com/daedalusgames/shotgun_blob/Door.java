@@ -38,25 +38,20 @@ public class Door extends Doodle
     /** This is a counter for me to be able to tell if the contact is still going on or not. */
     private int blobContacts;
 
-    /** An ID that I can refer to. Unique per level. */
-    private int id;
-
     /**
      * Constructor for a level door.
      * Meant to be called by the level loader.
      * @param doorBody The body of this door.
      * @param doorSensor The sensor of this door.
-     * @param id The id of this door (unique per level).
+     * @param gameWorld The game world reference.
      */
-    public Door(Body doorBody, Fixture doorSensor, int id, GameWorld gameWorld)
+    public Door(Body doorBody, Fixture doorSensor, GameWorld gameWorld)
     {
         this.gameWorld = gameWorld;
 
         this.setBody(doorBody);
 
         this.setSensor(doorSensor);
-
-        this.id = id;
 
         open = false;
 
@@ -157,14 +152,5 @@ public class Door extends Doodle
         AABB box = this.getBody().getFixtureList().getAABB();
         canvas.drawRect(new RectF(box.lowerBound.x * gameWorld.ratio(), box.lowerBound.y * gameWorld.ratio(),
             box.upperBound.x * gameWorld.ratio(), box.upperBound.y * gameWorld.ratio()), paint);
-    }
-
-    /**
-     * The unique level id getter.
-     * @return The id of this door.
-     */
-    public int getId()
-    {
-        return id;
     }
 }

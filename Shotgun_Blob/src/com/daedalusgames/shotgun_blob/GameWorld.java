@@ -1,7 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
 import android.graphics.Canvas;
-import android.graphics.Bitmap;
 import org.jbox2d.dynamics.Body;
 import android.util.Log;
 import android.content.res.Resources;
@@ -85,7 +84,6 @@ public class GameWorld implements SensorEventListener
 
     /**
      * The game world constructor.
-     * @param gravity The gravity vector for the box2d world.
      * @param resources The application resources reference.
      * @param metrics The display metrics of the screen.
      */
@@ -322,6 +320,11 @@ public class GameWorld implements SensorEventListener
         for (Doodle doodle : getLevel().getDoodles())
         {
             doodle.runLogic();
+        }
+
+        for (Action levelAction : getLevel().getActions())
+        {
+            levelAction.checkCondition();
         }
     }
 

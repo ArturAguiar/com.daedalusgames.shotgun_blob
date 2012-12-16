@@ -4,7 +4,6 @@ import android.util.DisplayMetrics;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.app.Activity;
-import org.jbox2d.common.Vec2;
 
 /**
  * // -------------------------------------------------------------------------

@@ -65,7 +65,7 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
         // Color to clear the screen with.
         canvas.drawColor(Color.WHITE);
 
-        //canvas.save();
+        canvas.save();
 
         // R.U.B.E. uses the positive y axis up orientation. It is just easier to flip everything.
         // But remember that the origin is now at the bottom left!
@@ -92,16 +92,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
 
             if (gameWorld.getLevel() != null)
                 gameWorld.getLevel().drawMe(canvas);
-        }
 
-        //canvas.restore();
-
-        synchronized (gameWorld)
-        {
             gameWorld.drawSpeechBubbles(canvas);
         }
 
-        //DebugDraw.drawFramerate(gameWorld, canvas);
+        canvas.restore();
+
+        DebugDraw.drawFramerate(gameWorld, canvas);
     }
 
 

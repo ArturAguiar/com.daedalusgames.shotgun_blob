@@ -31,6 +31,10 @@ public abstract class Doodle
      */
     abstract public void runLogic();
 
+    /**
+     * This method draws this doodle on the canvas provided.
+     * @param canvas The canvas to draw on.
+     */
     abstract public void drawMe(Canvas canvas);
 
     /**

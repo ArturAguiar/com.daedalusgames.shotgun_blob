@@ -1,6 +1,5 @@
 package com.daedalusgames.shotgun_blob;
 
-import android.util.Log;
 import org.jbox2d.dynamics.joints.RevoluteJointDef;
 import org.jbox2d.collision.shapes.PolygonShape;
 import org.jbox2d.dynamics.joints.PrismaticJointDef;
@@ -46,7 +45,7 @@ public class Blob extends Actor
     private float maxSpeed;
 
     /** The number of adjacent circles to simulate a soft body */
-    //Multiple of 3, please. At least 6. I advise for 12.
+    //Multiple of 3, please. At least 6. I advise 12.
     private final int NUM_CIRCLES = 12;
 
     /** The shotgun image. */
@@ -294,7 +293,8 @@ public class Blob extends Actor
         // 0 = default; 1 = firing; 2 = reloading.
         int frame = 0;
 
-        if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
+        if (!facingRight)
+        //if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
         {
             //flip the sprites if going left
             matrix.setScale(-1.0f, 1.0f);
@@ -366,6 +366,15 @@ public class Blob extends Actor
         //Set the speed to the new value.
         moveSpeed = gameWorld.getGravity().y;
 
+        if(Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f))
+        {
+            facingRight = false;
+        }
+        else
+        {
+            facingRight = true;
+        }
+
         //A comfortable dead-zone.
         if (moveSpeed > -0.5f && moveSpeed < 0.5f)
         {
@@ -373,7 +382,7 @@ public class Blob extends Actor
         }
 
         //Execute an action if it is set.
-        if (this.getActionEvent() != null && this.getActionToPerform() != null)
+        if (this.getActionToPerform() != null)
         {
             this.executeAction(this.getActionToPerform());
 
@@ -415,8 +424,8 @@ public class Blob extends Actor
      */
     public void shoot(float x, float y)
     {
-        // Only shoot if completely reloaded and he is not making a restraining action.
-        if (reloadTimer > 0 || (this.getActionEvent() != null && this.getActionToPerform() != null && this.getActionToPerform().restrains()))
+        // Only shoot if completely reloaded and not making a restraining action.
+        if (reloadTimer > 0 || (this.getActionToPerform() != null && this.getActionToPerform().restrains()))
         {
             return;
         }
@@ -438,75 +447,6 @@ public class Blob extends Actor
         reloadTimer = reloadTime;
     }
 
-    private void executeAction(Action action)
-    {
-        switch(action.getType())
-        {
-            case WAIT:
-
-                // Try to "brake". Reduce any horizontal velocity.
-                if (this.getBody().getLinearVelocity().x > 0.5f)
-                {
-                    this.getBody().applyLinearImpulse(new Vec2(-1.0f, 0.0f), this.getBody().getPosition());
-                }
-                else if (this.getBody().getLinearVelocity().x < -0.5f)
-                {
-                    this.getBody().applyLinearImpulse(new Vec2(1.0f, 0.0f), this.getBody().getPosition());
-                }
-
-                this.getActionToPerform().setAmount(this.getActionToPerform().getAmount() - 1);
-
-                if (this.getActionToPerform().getAmount() <= 0)
-                {
-                    this.setActionToPerform(null);
-                    this.getActionEvent().actionFinished();
-                }
-                break;
-
-            case MOVE:
-
-                if (this.getActionToPerform().getAmount() > 0.0f)
-                {
-                    this.getBody().setLinearVelocity(new Vec2(maxSpeed, this.getBody().getLinearVelocity().y));
-
-                }
-                else
-                {
-                    this.getBody().setLinearVelocity(new Vec2(-maxSpeed, this.getBody().getLinearVelocity().y));
-                }
-
-                int amount = this.getActionToPerform().getAmount();
-                this.getActionToPerform().setAmount(amount - 1 * (amount / Math.abs(amount)));
-
-                if (this.getActionToPerform().getAmount() == 0)
-                {
-                    this.setActionToPerform(null);
-                    this.getActionEvent().actionFinished();
-                }
-                break;
-
-            case TALK:
-
-                if (!this.gameWorld.getSpeechBubbles().contains(this.getActionToPerform().getSpeechBubble()))
-                {
-                    this.gameWorld.getSpeechBubbles().add(this.getActionToPerform().getSpeechBubble());
-                }
-
-                this.getActionToPerform().setAmount(this.getActionToPerform().getAmount() - 1);
-
-                if (this.getActionToPerform().getAmount() <= 0)
-                {
-                    this.gameWorld.getSpeechBubbles().remove(this.getActionToPerform().getSpeechBubble());
-                    this.setActionToPerform(null);
-                    this.getActionEvent().actionFinished();
-                }
-
-                break;
-        }
-
-
-
-    }
 
 
     /**
@@ -530,5 +470,23 @@ public class Blob extends Actor
         }
     }
 
+    /**
+     * Returns the maximum speed of blob.
+     * @return Blob's maximum speed.
+     */
+    public float getMaxSpeed()
+    {
+        return maxSpeed;
+    }
+
+    /**
+     * Returns blob's reload timer.
+     *
+     * @return The reload timer.
+     */
+    public int getReloadTimer()
+    {
+        return reloadTimer;
+    }
 
 }
