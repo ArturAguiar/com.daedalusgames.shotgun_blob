@@ -182,9 +182,13 @@ public class Panel extends SurfaceView implements SurfaceHolder.Callback
                 dy = gameWorld.getLevel().getBoundingBox().bottom * gameWorld.ratio() - gameWorld.getDisplayMetrics().heightPixels;
             }
 
-            canvas.translate(-dx, -dy);
+            // Multiplying the distance by a number less than 1 will make for an ease-out effect when the camera pan gets to the destination.
+            // The camera will move quickly when the distance is big and will slow down as the distance decreases.
+            Vec2 move = new Vec2((viewportTranslation.x + dx) * 0.25f, (viewportTranslation.y + dy) * 0.25f);
 
-            viewportTranslation.set(-dx, -dy);
+            canvas.translate(viewportTranslation.x - move.x, viewportTranslation.y - move.y);
+
+            viewportTranslation.set(viewportTranslation.x - move.x, viewportTranslation.y - move.y);
         }
     }
 }

@@ -38,6 +38,9 @@ public class Blob extends Actor
     /** Blob's health */
     private int health;
 
+    /** Blob's shotgun. */
+    private Shotgun shotgun;
+
     /** The current movement speed of blob. */
     private float moveSpeed;
 
@@ -45,27 +48,14 @@ public class Blob extends Actor
     private float maxSpeed;
 
     /** The number of adjacent circles to simulate a soft body */
-    //Multiple of 3, please. At least 6. I advise 12.
+    //Multiple of 3. At least 6. I advise 12.
     private final int NUM_CIRCLES = 12;
-
-    /** The shotgun image. */
-    private Bitmap shotgunSprite;
 
     /** The eyes sprite. */
     private Bitmap eyeSprite;
 
     /** The image transformation matrix. */
     private Matrix matrix;
-
-    /** The angle that the last shot was aimed at in degrees. */
-    private float shotAt;
-
-    /** The timer that indicates if the shotgun is reloaded or not.
-     *  Values bigger than zero indicate that it is still reloading. */
-    private int reloadTimer;
-
-    /** The time for Blob to reload his shotgun. */
-    private int reloadTime;
 
     /** The bitmap paint. */
     private Paint bitmapPaint;
@@ -84,6 +74,9 @@ public class Blob extends Actor
 
         health = 100;
 
+        //Equip the default shotgun.
+        shotgun = new Shotgun(gameWorld, Shotgun.Type.STANDARD);
+
         maxSpeed = 8.0f;
         moveSpeed = 0.0f;
 
@@ -93,15 +86,8 @@ public class Blob extends Actor
 
         matrix = new Matrix();
 
-
-        shotgunSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.shotgun_sheet);
-
         eyeSprite = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.eyes);
         eyeSprite = Bitmap.createScaledBitmap(eyeSprite, 40, 26, false);
-
-
-        reloadTimer = 0;
-        reloadTime = 40;
 
         bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
@@ -285,79 +271,10 @@ public class Blob extends Actor
         canvas.drawPath(path, paint);
 
 
-
-        //Now draw the shotgun.
-        matrix.reset();
-
-        // The frame of the sprite to draw.
-        // 0 = default; 1 = firing; 2 = reloading.
-        int frame = 0;
-
-        if (!facingRight)
-        //if ( Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f) )
+        if (shotgun != null)
         {
-            //flip the sprites if going left
-            matrix.setScale(-1.0f, 1.0f);
+            shotgun.drawMe(canvas);
         }
-        else
-        {
-            matrix.setScale(1.0f, 1.0f);
-        }
-
-        // Move the sprite to the body's position.
-        matrix.postTranslate(getBody().getPosition().x * gameWorld.ratio(),
-                             getBody().getPosition().y * gameWorld.ratio() - shotgunSprite.getHeight() / 2.0f);
-
-
-        canvas.drawBitmap(eyeSprite, matrix, bitmapPaint);
-
-
-        if (shotAt != 0.0f)
-        {
-            // Recalculate the angle accounting for the horizontal flip.
-            float angle = shotAt;
-            if (angle > 90.0f)
-            {
-                angle = -180.0f + angle;
-            }
-            else if (angle < -90.0f)
-            {
-                angle = 180.0f + angle;
-            }
-
-            // Rotate the sprite by the calculated angle.
-            matrix.postRotate(angle,
-                              getBody().getPosition().x * gameWorld.ratio(),
-                              getBody().getPosition().y * gameWorld.ratio());
-        }
-
-
-        if (reloadTimer > reloadTime - reloadTime / 10)
-        {
-            frame = 1;
-        }
-        else if (reloadTimer > 3 * reloadTime / 10)
-        {
-            frame = 0;
-        }
-        else if (reloadTimer > reloadTime / 10)
-        {
-            frame = 2;
-        }
-
-        if (reloadTimer > 0)
-        {
-            // Decrement the timer.
-            reloadTimer--;
-            if (reloadTimer == 0)
-            {
-                // Reset to default angle if ready to shoot again.
-                shotAt = 0.0f;
-            }
-        }
-
-
-        canvas.drawBitmap(Bitmap.createBitmap(shotgunSprite, frame * shotgunSprite.getWidth() / 3, 0, shotgunSprite.getWidth() / 3, shotgunSprite.getHeight()), matrix, bitmapPaint);
     }
 
     @Override
@@ -366,7 +283,7 @@ public class Blob extends Actor
         //Set the speed to the new value.
         moveSpeed = gameWorld.getGravity().y;
 
-        if(Math.abs(shotAt) > 90.0f || (shotAt == 0 && gameWorld.getGravity().y < -0.5f))
+        if ((shotgun != null && Math.abs(shotgun.getShotAt()) > 90.0f) || ((shotgun == null || shotgun.getShotAt() == 0) && gameWorld.getGravity().y < -0.5f))
         {
             facingRight = false;
         }
@@ -415,6 +332,10 @@ public class Blob extends Actor
         {
             getBody().setLinearVelocity( new Vec2( -maxSpeed , getBody().getLinearVelocity().y ) );
         }
+
+        // Run the shotgun logic.
+        if (shotgun != null)
+            shotgun.logic();
     }
 
     /**
@@ -424,27 +345,26 @@ public class Blob extends Actor
      */
     public void shoot(float x, float y)
     {
-        // Only shoot if completely reloaded and not making a restraining action.
-        if (reloadTimer > 0 || (this.getActionToPerform() != null && this.getActionToPerform().restrains()))
+        // Only shoot if a shotgun is equipped and blob is not making a restraining action.
+        if (shotgun == null || (this.getActionToPerform() != null && this.getActionToPerform().restrains()))
         {
             return;
         }
 
-        float angle = (float)Math.atan2(y - getBody().getPosition().y * gameWorld.ratio(),
-                                        x - getBody().getPosition().x * gameWorld.ratio());
-
-        Vec2 velocity = new Vec2(-15.0f * FloatMath.cos(angle),
-                                 -15.0f * FloatMath.sin(angle));
-
-        getBody().setLinearVelocity(velocity);
-
-        for (int i = 0; i < adjCircles.length; i++)
+        if (shotgun.shoot(x, y))
         {
-            adjCircles[i].setLinearVelocity(velocity);
+            Vec2 velocity = new Vec2(
+                -15.0f * FloatMath.cos(shotgun.getShotAt() * (3.14159265f)/180.0f),
+                -15.0f * FloatMath.sin(shotgun.getShotAt() * (3.14159265f)/180.0f));
+
+            getBody().setLinearVelocity(velocity);
+
+            for (int i = 0; i < adjCircles.length; i++)
+            {
+                adjCircles[i].setLinearVelocity(velocity);
+            }
         }
 
-        shotAt = angle * 180.0f/(3.14159265f);
-        reloadTimer = reloadTime;
     }
 
 
@@ -477,16 +397,6 @@ public class Blob extends Actor
     public float getMaxSpeed()
     {
         return maxSpeed;
-    }
-
-    /**
-     * Returns blob's reload timer.
-     *
-     * @return The reload timer.
-     */
-    public int getReloadTimer()
-    {
-        return reloadTimer;
     }
 
 }

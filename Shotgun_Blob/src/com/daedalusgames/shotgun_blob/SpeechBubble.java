@@ -1,13 +1,14 @@
 package com.daedalusgames.shotgun_blob;
 
-import android.util.FloatMath;
+import android.graphics.Path;
+import android.graphics.RectF;
+import android.graphics.Rect;
 import java.util.ArrayList;
 import org.jbox2d.common.Vec2;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.Paint;
 import android.graphics.Canvas;
-import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
 
 /**
@@ -21,8 +22,12 @@ public class SpeechBubble
 {
     private GameWorld gameWorld;
 
-    private Bitmap bubbleBG;
+    private Bitmap fullBubble = null;
 
+    private Vec2 position;
+
+    private Paint bubbleFillPaint;
+    private Paint bubbleStrokePaint;
     private Paint bitmapPaint;
     private Paint textPaint;
 
@@ -40,22 +45,34 @@ public class SpeechBubble
     {
         this.gameWorld = gameWorld;
 
-        bubbleBG = BitmapFactory.decodeResource(gameWorld.getResources(), R.drawable.speech_bubble);
+        position = new Vec2();
 
         this.bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
+
+        this.bubbleFillPaint = new Paint();
+        bubbleFillPaint.setStyle(Paint.Style.FILL);
+        bubbleFillPaint.setColor(Color.parseColor("#F9F9F9"));
+        bubbleFillPaint.setAntiAlias(true);
+
+        this.bubbleStrokePaint = new Paint();
+        bubbleStrokePaint.setStyle(Paint.Style.STROKE);
+        bubbleStrokePaint.setStrokeWidth(2.0f);
+        bubbleStrokePaint.setColor(Color.parseColor("#000000"));
+        bubbleStrokePaint.setAntiAlias(true);
+
         this.textPaint = new Paint();
         textPaint.setStyle(Paint.Style.FILL);
         textPaint.setColor(Color.BLACK);
-        textPaint.setTextSize(12);
-        textPaint.setFakeBoldText(true);
+        textPaint.setTextSize(18);
         textPaint.setAntiAlias(true);
-        textPaint.setTypeface(Typeface.MONOSPACE);
+        textPaint.setTextAlign(Paint.Align.LEFT);
+        textPaint.setTypeface(Typeface.createFromAsset(gameWorld.getResources().getAssets(), "visitor.ttf"));
 
         this.talker = talker;
 
         this.text = new ArrayList<String>();
 
-        // Split into ~20 character lines, but only split on whitespace.
+        // Split the text into ~20 character lines, but only split on whitespace.
         int amountOfChars = 20;
 
         String toSplit = speech;
@@ -89,6 +106,41 @@ public class SpeechBubble
             text.add(toSplit);
         }
 
+
+        // Generates the static bitmap for the speech bubble and store it in fullBubble.
+        Rect textBounds = new Rect();
+        textPaint.getTextBounds("A", 0, 1, textBounds);
+
+        float lineHeight = textBounds.height();
+
+        float textWidth = 0.0f;
+        for (int i = 0; i < text.size(); i++)
+        {
+            if (textPaint.measureText(text.get(i)) > textWidth)
+            {
+                textWidth = textPaint.measureText(text.get(i));
+            }
+        }
+
+        fullBubble = Bitmap.createBitmap((int)(textWidth + 30.0f), (int)((lineHeight + 5.0f) * text.size() + 45.0f), Bitmap.Config.ARGB_8888);
+
+        Canvas tempCanvas = new Canvas(fullBubble);
+
+        tempCanvas.drawRoundRect(new RectF(0.0f, 0.0f, fullBubble.getWidth(), fullBubble.getHeight() -20.0f), 20, 20, bubbleFillPaint);
+        tempCanvas.drawRoundRect(new RectF(1.0f, 1.0f, fullBubble.getWidth() - 1.0f, fullBubble.getHeight() - 21.0f), 20, 20, bubbleStrokePaint);
+
+        for (int i = 0; i < text.size(); i++)
+        {
+            tempCanvas.drawText(text.get(i), 15.0f + textWidth / 2.0f - textPaint.measureText(text.get(i)) / 2.0f, 10.0f + (lineHeight + 5.0f) * (i + 1), textPaint);
+        }
+
+        Path pointer = new Path();
+        pointer.moveTo(this.position.x + fullBubble.getWidth() / 2.0f - 20.0f, this.position.y + fullBubble.getHeight() - 22.0f);
+        pointer.lineTo(this.position.x + fullBubble.getWidth() / 2.0f, this.position.y + fullBubble.getHeight() - 1.0f);
+        pointer.lineTo(this.position.x + fullBubble.getWidth() / 2.0f + 20.0f, this.position.y + fullBubble.getHeight() - 22.0f);
+
+        tempCanvas.drawPath(pointer, bubbleFillPaint);
+        tempCanvas.drawPath(pointer, bubbleStrokePaint);
     }
 
     /**
@@ -97,22 +149,10 @@ public class SpeechBubble
      */
     public void drawMe(Canvas canvas)
     {
-        Vec2 position = new Vec2(
-            talker.getBody().getPosition().x * gameWorld.ratio() + 30.0f,
-            talker.getBody().getPosition().y * gameWorld.ratio() - this.bubbleBG.getHeight() - 30.0f);
+        this.position.set(
+            talker.getBody().getPosition().x * gameWorld.ratio() - fullBubble.getWidth() / 2.0f,
+            talker.getBody().getPosition().y * gameWorld.ratio() - fullBubble.getHeight() - 60.0f);
 
-        canvas.drawBitmap(bubbleBG,
-                          position.x,
-                          position.y,
-                          bitmapPaint);
-
-        position.x = position.x + bubbleBG.getWidth() / 2.0f;
-        position.y = position.y + 16.0f + bubbleBG.getHeight() / 2.0f - 12.0f * text.size();
-
-        for (int i = 0; i < text.size(); i++)
-        {
-            canvas.drawText(text.get(i), FloatMath.floor(position.x - 3.5f * text.get(i).length()), FloatMath.floor(position.y + 12.0f * i), textPaint);
-        }
-
+        canvas.drawBitmap(fullBubble, position.x, position.y, bitmapPaint);
     }
 }

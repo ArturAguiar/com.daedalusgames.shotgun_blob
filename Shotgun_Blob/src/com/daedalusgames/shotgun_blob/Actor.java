@@ -6,10 +6,8 @@ import org.jbox2d.dynamics.BodyDef;
 import org.jbox2d.dynamics.Body;
 
 /**
- * // -------------------------------------------------------------------------
-/**
  *  An abstract class of all actors in the game.
- *  This is basically the superclass of every dynamic object or character.
+ *  This is basically the superclass of every dynamic character.
  *
  *  @author Artur
  *  @version Sep 24, 2012
@@ -223,7 +221,11 @@ abstract public class Actor
 
                 if (this.getActionToPerform().isFinished())
                 {
-                    this.gameWorld.getSpeechBubbles().remove(this.getActionToPerform().getSpeechBubble());
+                    synchronized (gameWorld)
+                    {
+                        this.gameWorld.getSpeechBubbles().remove(this.getActionToPerform().getSpeechBubble());
+                    }
+
                     this.setActionToPerform(this.getActionToPerform().next());
                     //this.getActionEvent().actionFinished();
                 }

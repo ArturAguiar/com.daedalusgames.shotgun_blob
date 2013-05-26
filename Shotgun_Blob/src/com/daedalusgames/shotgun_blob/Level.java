@@ -1,5 +1,6 @@
 package com.daedalusgames.shotgun_blob;
 
+import java.util.HashMap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.BitmapFactory;
@@ -33,9 +34,9 @@ public class Level
 
     private HashSet<Doodle> levelDoodles;
 
-    //private HashSet<Event> levelEvents;
-
     private HashSet<Action> levelActions;
+
+    private HashMap<String, Actor> levelActors;
 
     private Bitmap levelImage;
 
@@ -51,9 +52,9 @@ public class Level
 
         levelDoodles = new HashSet<Doodle>();
 
-        //levelEvents = new HashSet<Event>();
-
         levelActions = new HashSet<Action>();
+
+        levelActors = new HashMap<String, Actor>();
 
         //Load first level.
         this.loadLevel("intro");
@@ -120,6 +121,14 @@ public class Level
         }
 
 
+        // Check for level actors.
+        Body[] levelActorBodies = json.getBodiesByName("actor");
+        for (int i = 0; i < levelActorBodies.length; i++)
+        {
+            String name = json.getFixtureName(levelActorBodies[i].getFixtureList());
+            levelActors.put(name.trim(), new LevelObject(this.gameWorld, levelActorBodies[i], null));
+        }
+
         // Check for doors.
         Body[] doors = json.getBodiesByName("doodle_door");
         for (int i = 0; i < doors.length; i++)
@@ -141,8 +150,6 @@ public class Level
             Fixture sensor = eventSensors[i].getFixtureList();
             int id = Integer.parseInt(json.getFixtureName(sensor));
 
-
-            // Add the door to the doodles set for the level.
             this.addAction(id, sensor);
         }
 
@@ -166,15 +173,16 @@ public class Level
                     actionHead = new Action(gameWorld.getBlob(), gameWorld, false);
 
                     actionHead.waitFor(30)
-                    .restrain().talk("What the hell is this place?", 100)
-                    .move(-gameWorld.getBlob().getMaxSpeed(), 80)
-                    .waitFor(30)
-                    .restrain().talk("Wherever it is that I came from,", 100)
-                    .talk("I can't go back.", 70);
+                    .restrain().talk("The fuck is going on?!", 100);
+                    //.move(-gameWorld.getBlob().getMaxSpeed(), 80)
+                    //.waitFor(30)
+                    //.restrain().talk("Wherever it is that I came from,", 100)
+                    //.talk("I can't go back.", 70);
 
                     actionHead.addTrigger(sensor);
 
-                    /*
+                    /* This is an example of a conditional trigger.
+
                     actionHead.addTrigger(
                         new Action.ConditionalTrigger() {
                             @Override
@@ -191,12 +199,23 @@ public class Level
 
                     break;
 
+                case 1:
+                    Actor speaker = levelActors.get("speaker1");
+                    if (speaker == null)
+                        Log.v("Level", "Couldn't find speaker!");
+                    else
+                        Log.v("Level", "found speaker at " + speaker.getBody().getPosition());
+
+                    actionHead = new Action(speaker, this.gameWorld, false);
+
+                    actionHead.talk("Test subject b10b, please proceed to the room on your right", 100);
+                    actionHead.addTrigger(sensor);
+                    break;
+
                 default:
                     eventNotFound = true;
                     break;
             }
-
-
         }
 
         if (!eventNotFound)
